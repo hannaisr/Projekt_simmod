@@ -20,12 +20,12 @@ class Walker():
         """Implemented by child class"""
         pass
 
-    def non_avoiding_walk(self,nsteps=100):
+    def walk_without_avoid(self,nsteps=100):
         """Walk nsteps steps of non-self-avoiding random walk."""
         for i in range(nsteps):
             self.walk_one_step()
 
-    def self_avoiding_walk(self,nsteps=100):
+    def walk_with_self_avoid(self,nsteps=100):
         """Implemented by child class"""
         pass
 
@@ -33,11 +33,24 @@ class Walker():
         self.x, self.y, self.z = [self.x0], [self.y0], [self.z0]
 
     def plot_the_walk(self):
-        """Plots the walk in a 3D line plot."""
+        """Plots the walk in 3D."""
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         ax.plot(self.x,self.y,self.z)
         plt.show()
+
+    def get_end_to_end_distance(self):
+        """Calculate end-to-end distance of already walked walk."""
+        return np.sqrt((self.x[-1]-self.x0)**2+(self.y[-1]-self.y0)**2+(self.z[-1]-self.z0)**2)
+
+    def get_multiple_end_to_end_distances(self,nwalks=10):
+        # TODO implement for self avoiding walk as well
+        etedist_list = np.zeros(nwalks)
+        for i in range(nwalks):
+            self.restart()
+            self.walk_without_avoid()
+            etedist_list[i] = self.get_end_to_end_distance()
+        return etedist_list
 
 class Grid_walker(Walker):
     def walk_one_step(self):
@@ -59,7 +72,7 @@ class Grid_walker(Walker):
         elif direction == 5:
             self.z[-1] -= 1
 
-    def self_avoiding_walk(self,nsteps=100):
+    def walk_with_self_avoid(self,nsteps=100):
         """Walk nsteps steps of self-avoiding random walk"""
         pass
 
@@ -78,14 +91,15 @@ class Freely_jointed_chain(Walker):
         self.y[-1] += self.r*np.sin(theta)*np.sin(phi)
         self.z[-1] += self.r*np.cos(theta)
 
-    def self_avoiding_walk(self,nsteps=100):
+    def walk_with_self_avoid(self,nsteps=100):
         """Walk nsteps steps of self-avoiding random walk"""
         pass
 
-# gridwalk = Grid_walker()
-# gridwalk.non_avoiding_walk(nsteps=500)
+gridwalk = Grid_walker()
+print(gridwalk.get_multiple_end_to_end_distances(nwalks=10))
+# gridwalk.walk_without_avoid(nsteps=500)
 # gridwalk.plot_the_walk()
 
-chainwalk = Freely_jointed_chain()
-chainwalk.non_avoiding_walk(nsteps=500)
-chainwalk.plot_the_walk()
+# chainwalk = Freely_jointed_chain()
+# chainwalk.walk_without_avoid(nsteps=500)
+# chainwalk.plot_the_walk()
