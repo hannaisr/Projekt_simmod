@@ -44,6 +44,7 @@ class Walker():
         return np.sqrt((self.x[-1]-self.x0)**2+(self.y[-1]-self.y0)**2+(self.z[-1]-self.z0)**2)
 
     def get_multiple_end_to_end_distances(self,nwalks=10):
+        """Returns a list of end-to-end distances for nwalks number of walks"""
         # TODO implement for self avoiding walk as well
         etedist_list = np.zeros(nwalks)
         for i in range(nwalks):
