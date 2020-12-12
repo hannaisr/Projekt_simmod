@@ -6,11 +6,11 @@ from mpl_toolkits.mplot3d import Axes3D # For 3D plot
 class Walker():
     """Walked positions are stored in a list"""
     # Initiate list of visited points
-    origin = (1,2,5)
+    origin = (0.,0.,0.)
     visited_points = [origin]
 
     # Define step length
-    r = 1
+    r = 1.
 
     def walk_one_step(self):
         """Implemented by child class"""
@@ -27,7 +27,7 @@ class Walker():
 
     def restart(self):
         """Resets list of visited points."""
-        visited_points = [self.origin]
+        self.visited_points = [self.origin]
 
     def plot_the_walk(self):
         """Plots the walk in 3D."""
