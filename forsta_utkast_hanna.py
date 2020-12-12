@@ -1,6 +1,7 @@
 import random as rnd
 
 class Grid_walker():
+    """Walked positions are stored in three lists, one for each coordinate."""
     # Initial position
     x0 = 0
     y0 = 0
@@ -10,7 +11,8 @@ class Grid_walker():
     x, y, z = [x0], [y0], [z0]
 
     def walk_one_step():
-        x.append(x[-1]), y.append(y[-1]), z.append(z[-1])   # Append the same coordinates as last step to coordinate list
+        # Append the same coordinates as last step to coordinate list
+        x.append(x[-1]), y.append(y[-1]), z.append(z[-1])
         # Update to new coordinates
         direction = rnd.randint(0,5)
         if direction == 0:
