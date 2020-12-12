@@ -1,5 +1,7 @@
 import random as rnd
 import numpy as np
+import matplotlib.pyplot as plt # For 3D plot
+from mpl_toolkits.mplot3d import Axes3D # For 3D plot
 
 class Grid_walker():
     """Walked positions are stored in three lists, one for each coordinate."""
@@ -14,23 +16,42 @@ class Grid_walker():
     # Initiate the list storing the coordinates of the walk
     x, y, z = [x0], [y0], [z0]
 
-    def walk_one_step():
+    def walk_one_step(self):
         # Append the same coordinates as last step to coordinate list
-        x.append(x[-1]), y.append(y[-1]), z.append(z[-1])
-        # Update to new coordinates
+        self.x.append(self.x[-1]), self.y.append(self.y[-1]), self.z.append(self.z[-1])
+        # Get walking direction
         direction = rnd.randint(0,5)
+        # Update the coordinates
         if direction == 0:
-            x[-1] += 1
+            self.x[-1] += 1
         elif direction == 1:
-            x[-1] -= 1
+            self.x[-1] -= 1
         elif direction == 2:
-            y[-1] += 1
+            self.y[-1] += 1
         elif direction == 3:
-            y[-1] -= 1
+            self.y[-1] -= 1
         elif direction == 4:
-            z[-1] += 1
+            self.z[-1] += 1
         elif direction == 5:
-            z[-1] -= 1
+            self.z[-1] -= 1
+
+    def non_avoiding_walk(self,nsteps=100):
+        """Walk nsteps steps of non-self-avoiding random walk."""
+        for i in range(nsteps):
+            self.walk_one_step()
+
+    def self_avoiding_walk(self,nsteps=100):
+        """Walk nsteps steps of self-avoiding random walk"""
+        pass
+
+    def restart(self):
+        self.x, self.y, self.z = [self.x0], [self.y0], [self.z0]
+
+    def plot_the_walk(self):
+        """Plots the walk in a 3D line plot."""
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot(self.x,self.y,self.z)
 
 class Freely_jointed_chain():
     """Walked positions are stored in three lists, one for each coordinate."""
@@ -42,16 +63,37 @@ class Freely_jointed_chain():
     # Define step length
     r = 1
 
+    # Define radius of spheres at ends for self-avoiding walk (could perhaps be put in __init__())
+    R = r/2
+
     # Initiate the list storing the coordinates of the walk
     x, y, z = [x0], [y0], [z0]
 
-    def walk_one_step():
+    def walk_one_step(self):
         # Append the same coordinates as last step to coordinate list
-        x.append(x[-1]), y.append(y[-1]), z.append(z[-1])
+        self.x.append(self.x[-1]), self.y.append(self.y[-1]), self.z.append(self.z[-1])
         # Get walking direction
         theta = rnd.uniform(0,np.pi)
         phi = rnd.uniform(0,2*np.pi)
         # Update the coordinates
-        x[-1] += r*np.sin(theta)*np.cos(phi)
-        y[-1] += r*np.sin(theta)*np.sin(phi)
-        z[-1] += r*np.cos(theta)
+        self.x[-1] += r*np.sin(theta)*np.cos(phi)
+        self.y[-1] += r*np.sin(theta)*np.sin(phi)
+        self.z[-1] += r*np.cos(theta)
+
+    def non_avoiding_walk(self,nsteps=100):
+        """Walk nsteps steps of non-self-avoiding random walk."""
+        for i in range(nsteps):
+            self.walk_one_step()
+
+    def self_avoiding_walk(self,nsteps=100):
+        """Walk nsteps steps of self-avoiding random walk"""
+        pass
+
+    def restart(self):
+        self.x, self.y, self.z = [self.x0], [self.y0], [self.z0]
+
+    def plot_the_walk(self):
+        """Plots the walk in a 3D line plot."""
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot(self.x,self.y,self.z)
