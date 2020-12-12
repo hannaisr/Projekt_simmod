@@ -30,6 +30,7 @@ class Walker():
         pass
 
     def restart(self):
+        """Resets the coordinate lists."""
         self.x, self.y, self.z = [self.x0], [self.y0], [self.z0]
 
     def plot_the_walk(self):
