@@ -37,6 +37,7 @@ class Walker():
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         ax.plot(self.x,self.y,self.z)
+        plt.show()
 
 class Grid_walker(Walker):
     def walk_one_step(self):
@@ -64,7 +65,7 @@ class Grid_walker(Walker):
 
 class Freely_jointed_chain(Walker):
     # Define radius of spheres at ends for self-avoiding walk (could perhaps be put in __init__())
-    R = r/2
+    R = 1/2
 
     def walk_one_step(self):
         # Append the same coordinates as last step to coordinate list
@@ -73,10 +74,18 @@ class Freely_jointed_chain(Walker):
         theta = rnd.uniform(0,np.pi)
         phi = rnd.uniform(0,2*np.pi)
         # Update the coordinates
-        self.x[-1] += r*np.sin(theta)*np.cos(phi)
-        self.y[-1] += r*np.sin(theta)*np.sin(phi)
-        self.z[-1] += r*np.cos(theta)
+        self.x[-1] += self.r*np.sin(theta)*np.cos(phi)
+        self.y[-1] += self.r*np.sin(theta)*np.sin(phi)
+        self.z[-1] += self.r*np.cos(theta)
 
     def self_avoiding_walk(self,nsteps=100):
         """Walk nsteps steps of self-avoiding random walk"""
         pass
+
+# gridwalk = Grid_walker()
+# gridwalk.non_avoiding_walk(nsteps=500)
+# gridwalk.plot_the_walk()
+
+chainwalk = Freely_jointed_chain()
+chainwalk.non_avoiding_walk(nsteps=500)
+chainwalk.plot_the_walk()
