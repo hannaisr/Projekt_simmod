@@ -55,18 +55,40 @@ class Walker():
         last_point = self.visited_points[-1]
         return np.sqrt((last_point[0]-self.origin[0])**2+(last_point[1]-self.origin[1])**2+(last_point[2]-self.origin[2])**2)
 
-    def get_multiple_end_to_end_distances(self,nwalks=10,avoid=False):
-        """Returns a list of end-to-end distances for nwalks number of walks"""
+    def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False):
+        """Returns a list of end-to-end distances for nwalks number of walks of length nsteps"""
         etedist_list = np.zeros(nwalks)
         for i in range(nwalks):
             self.restart()
             if avoid is True:
-                self.walk_with_self_avoid()
+                self.walk_with_self_avoid(nsteps=nsteps)
             else:
-                self.walk_without_avoid()
+                self.walk_without_avoid(nsteps=nsteps)
             etedist_list[i] = self.get_end_to_end_distance()
         return etedist_list
-    
+
+    def plot_multiple_end_to_end_distances(self,nwalks=10,avoid=False):
+        """Plots RMS end-to-end distances for nwalks walks by number of steps"""
+        rms=[]
+        rms_fluc = []
+        std_err = []
+        step_numbers = range(100,1100,100)
+        for nsteps in step_numbers:
+            etedist_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid)
+            #RMS end-to-end distance
+            rms.append(np.sqrt(np.mean(np.square(etedist_list))))
+            #RMS fluctuation estimate
+            rms_fluc.append(np.sqrt((np.mean(np.square(etedist_list))-np.mean(etedist_list)**2)*nwalks/(nwalks-1)))
+            #Standard error estimate
+            std_err.append(np.sqrt((np.mean(np.square(etedist_list))-np.mean(etedist_list)**2)/(nwalks-1)))
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(step_numbers,rms,label="RMS End-to-End Distance")
+        ax.plot(step_numbers,rms_fluc,label="RMS Fluctuation Estimate")
+        ax.plot(step_numbers,std_err,label="Standard Error Estimate")
+        plt.legend()
+        plt.show()
+
 class Grid_walker(Walker):
     def walk_one_step(self):
         current_pos = self.visited_points[-1][:]
@@ -152,13 +174,15 @@ def get_cmap(n, name='hsv'):
     RGB color; the keyword argument name must be a standard mpl colormap name.'''
     return plt.cm.get_cmap(name, n + 1)
 
-# gridwalk = Grid_walker()
+gridwalk = Grid_walker()
+# gridwalk.plot_multiple_end_to_end_distances()
 # print(gridwalk.get_multiple_end_to_end_distances(nwalks=10,avoid=False))
 # gridwalk.walk_without_avoid(nsteps=100)
 # gridwalk.walk_with_self_avoid(nsteps=50)
 # gridwalk.plot_the_walk(beads=False)
 
 # chainwalk = Freely_jointed_chain()
+# chainwalk.plot_multiple_end_to_end_distances(nwalks=100)
 # chainwalk.walk_without_avoid(nsteps=500)
 # chainwalk.walk_with_self_avoid(nsteps=50)
 # chainwalk.plot_the_walk(beads=True)
