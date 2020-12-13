@@ -12,6 +12,9 @@ class Walker():
     # Define step length
     r = 1
 
+    # Define bead radius, at largest 1/2*r
+    rho = 0.2
+
     def walk_one_step(self):
         """Implemented by child class"""
         pass
@@ -27,9 +30,9 @@ class Walker():
 
     def restart(self):
         """Resets list of visited points."""
-        visited_points = [[0,0,0]]
+        self.visited_points = [[0,0,0]]
 
-    def plot_the_walk(self):
+    def plot_the_walk(self,beads=False):
         """Plots the walk in 3D."""
         x = [i[0] for i in self.visited_points]
         y = [i[1] for i in self.visited_points]
@@ -37,6 +40,14 @@ class Walker():
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         ax.plot(x,y,z)
+        if beads is True:
+            cmap = get_cmap(len(x))
+            for i in range(len(x)):
+                phi, theta = np.mgrid[0:2 * np.pi:20j, 0:np.pi:10j]
+                x_sphere = x[i] + self.rho * np.cos(phi) * np.sin(theta)
+                y_sphere = y[i] + self.rho * np.sin(phi) * np.sin(theta)
+                z_sphere = z[i] + self.rho * np.cos(theta)
+                ax.plot_wireframe(x_sphere, y_sphere, z_sphere, color=cmap(i))
         plt.show()
 
     def get_end_to_end_distance(self):
@@ -44,16 +55,18 @@ class Walker():
         last_point = self.visited_points[-1]
         return np.sqrt((last_point[0]-self.origin[0])**2+(last_point[1]-self.origin[1])**2+(last_point[2]-self.origin[2])**2)
 
-    def get_multiple_end_to_end_distances(self,nwalks=10):
+    def get_multiple_end_to_end_distances(self,nwalks=10,avoid=False):
         """Returns a list of end-to-end distances for nwalks number of walks"""
-        # TODO implement for self avoiding walk as well
         etedist_list = np.zeros(nwalks)
         for i in range(nwalks):
             self.restart()
-            self.walk_without_avoid()
+            if avoid is True:
+                self.walk_with_self_avoid()
+            else:
+                self.walk_without_avoid()
             etedist_list[i] = self.get_end_to_end_distance()
         return etedist_list
-
+    
 class Grid_walker(Walker):
     def walk_one_step(self):
         current_pos = self.visited_points[-1][:]
@@ -77,18 +90,25 @@ class Grid_walker(Walker):
 
     def walk_with_self_avoid(self,nsteps=100):
         """Walk nsteps steps of self-avoiding random walk"""
-        for i in range(nsteps):
-            walk_one_step()
-            if self.visited_points[-1] in self.visited_points[:-1]:
-                print('Managed to walk',len(visited_points)-1,'steps')
-                break
+        try_again = True
+        while try_again is True:
+            try_again = False
+            for i in range(nsteps):
+                self.walk_one_step()
+                #In case of self-interception, abort attempt and retry
+                if self.visited_points[-1] in self.visited_points[:-1]:
+                    print('Managed to walk',len(self.visited_points)-1,'steps')
+                    self.restart()
+                    try_again = True
+                    break
+        print('Managed to walk', len(self.visited_points) - 1, 'steps')
 
 class Freely_jointed_chain(Walker):
     # Define radius of spheres at ends for self-avoiding walk (could perhaps be put in __init__())
     R = 1/2
 
     def walk_one_step(self):
-        current_pos = self.visited_points[-1]
+        current_pos = self.visited_points[-1][:]
         # Get walking direction
         theta = rnd.uniform(0,np.pi)
         phi = rnd.uniform(0,2*np.pi)
@@ -101,13 +121,44 @@ class Freely_jointed_chain(Walker):
 
     def walk_with_self_avoid(self,nsteps=100):
         """Walk nsteps steps of self-avoiding random walk"""
-        pass
+        try_again = True
+        # Try to assemble a sequence until successful
+        while try_again is True:
+            try_again = False
+            for i in range(nsteps):
+                self.walk_one_step()
+                # Test if the site is already occupied
+                try_again = self.test_avoid()
+                # In case of self interception, break attempt immediately
+                if try_again is True:
+                    print('Managed to walk',len(self.visited_points)-1,'steps')
+                    self.restart()
+                    break
+        print('Managed to walk', len(self.visited_points) - 1, 'steps')
 
-gridwalk = Grid_walker()
-# print(gridwalk.get_multiple_end_to_end_distances(nwalks=10))
-gridwalk.walk_without_avoid(nsteps=500)
-gridwalk.plot_the_walk()
+    def test_avoid(self):
+        """Test if latest site is already occupied"""
+        #The distance between neighboring sphere centres is self.r, so each sphere has radius 1/2*self.r
+        for point in self.visited_points[:-1]:
+            r_centres = np.sqrt((point[0] - self.visited_points[-1][0])**2 + (point[1] - self.visited_points[-1][1])**2 + (point[2] - self.visited_points[-1][2])**2)
+            if r_centres < 2*self.rho:
+                # Self-intercept - needs to restart the process
+                return True
+        return False
+
+
+def get_cmap(n, name='hsv'):
+    '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
+    RGB color; the keyword argument name must be a standard mpl colormap name.'''
+    return plt.cm.get_cmap(name, n + 1)
+
+# gridwalk = Grid_walker()
+# print(gridwalk.get_multiple_end_to_end_distances(nwalks=10,avoid=False))
+# gridwalk.walk_without_avoid(nsteps=100)
+# gridwalk.walk_with_self_avoid(nsteps=50)
+# gridwalk.plot_the_walk(beads=False)
 
 # chainwalk = Freely_jointed_chain()
 # chainwalk.walk_without_avoid(nsteps=500)
-# chainwalk.plot_the_walk()
+# chainwalk.walk_with_self_avoid(nsteps=50)
+# chainwalk.plot_the_walk(beads=True)
