@@ -68,7 +68,7 @@ class Walker():
         return etedist_list
 
     def plot_multiple_end_to_end_distances(self,nwalks=10,avoid=False):
-        """Plots RMS end-to-end distances for nwalks walks by number of steps"""
+        """Plots end-to-end distance RMS, RMS fluctuation and standard error estimate for nwalks walks by number of steps"""
         rms=[]
         rms_fluc = []
         std_err = []
