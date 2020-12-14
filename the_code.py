@@ -18,7 +18,7 @@ class Walker():
     # Store last walking direction
     last_direction = 0
 
-    def walk_one_step(self):
+    def walk_one_step(self, limited=False):
         """Implemented by child class"""
         pass
 
@@ -28,19 +28,23 @@ class Walker():
         for i in range(nsteps):
             self.walk_one_step(limited)
 
-    def walk_with_self_avoid(self,nsteps=100,limited=True,tries_per_step=100):
+    def walk_with_self_avoid(self,nsteps=100,limited=True):
         """Walk nsteps steps of self-avoiding random walk"""
+        tries_per_step = 100 # Maximum number of times to try again if the step is unacceptable
+
         self.restart()
         try_again = True
         # Try to assemble a sequence until successful
         while try_again is True:
             try_again = False
             for i in range(nsteps):
-                self.walk_one_step(limited)
-                # Test if the site is already occupied. Try again a maximum of tries_per_step times if it happens to be true
                 for j in range(tries_per_step):
-                    try_again=self.test_avoid
-                    if try_again is False:
+                    self.walk_one_step(limited)
+                    # Test if the site is already occupied.
+                    try_again=self.test_avoid()
+                    if try_again is True:   # Remove last site and start again
+                        self.visited_points.pop()
+                    else:
                         break
                 # In case of self interception, break attempt immediately
                 if try_again is True:
@@ -198,7 +202,7 @@ def main():
     # chainwalk = Freely_jointed_chain()
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=100)
     # chainwalk.walk_without_avoid(nsteps=100,limited=True)
-    # chainwalk.walk_with_self_avoid(nsteps=50000,limited=True)
+    # chainwalk.walk_with_self_avoid(nsteps=100,limited=True)
     # chainwalk.plot_the_walk(beads=False)
 
 main()
