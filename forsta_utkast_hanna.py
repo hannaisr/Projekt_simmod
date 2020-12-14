@@ -15,6 +15,9 @@ class Walker():
     # Define bead radius, at largest 1/2*r
     rho = 0.2
 
+    # Store last walking direction
+    last_direction = [-1]
+
     def walk_one_step(self):
         """Implemented by child class"""
         pass
@@ -30,7 +33,7 @@ class Walker():
 
     def restart(self):
         """Resets list of visited points."""
-        self.visited_points = [[0,0,0]]
+        self.visited_points = [origin]
 
     def plot_the_walk(self,beads=False):
         """Plots the walk in 3D."""
@@ -90,22 +93,27 @@ class Walker():
         plt.show()
 
 class Grid_walker(Walker):
-    def walk_one_step(self):
+    def walk_one_step(self, limited=False):
+        possible_directions = [-3,-2,-1,1,2,3]
         current_pos = self.visited_points[-1][:]
         # Get walking direction
-        direction = rnd.randint(0,5)
+        direction = rnd.choice(possible_directions)
+        if limited == True:
+            while direction == -last_direction:
+                direction = rnd.choice(possible_directions)
+        last_direction = direction
         # Update the coordinates
-        if direction == 0:
+        if direction == 1:
             current_pos[0] += 1
-        elif direction == 1:
+        elif direction == -1:
             current_pos[0] -= 1
         elif direction == 2:
             current_pos[1] += 1
-        elif direction == 3:
+        elif direction == -2:
             current_pos[1] -= 1
-        elif direction == 4:
+        elif direction == 3:
             current_pos[2] += 1
-        elif direction == 5:
+        elif direction == -3:
             current_pos[2] -= 1
         # Update list of visited points
         self.visited_points.append(current_pos)
@@ -126,9 +134,6 @@ class Grid_walker(Walker):
         print('Managed to walk', len(self.visited_points) - 1, 'steps')
 
 class Freely_jointed_chain(Walker):
-    # Define radius of spheres at ends for self-avoiding walk (could perhaps be put in __init__())
-    R = 1/2
-
     def walk_one_step(self):
         current_pos = self.visited_points[-1][:]
         # Get walking direction
