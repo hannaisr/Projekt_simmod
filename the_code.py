@@ -28,7 +28,25 @@ class Walker():
         for i in range(nsteps):
             self.walk_one_step(limited)
 
-    def walk_with_self_avoid(self,nsteps=100):
+    def walk_with_self_avoid(self,nsteps=100,limited=True):
+        """Walk nsteps steps of self-avoiding random walk"""
+        self.restart()
+        try_again = True
+        # Try to assemble a sequence until successful
+        while try_again is True:
+            try_again = False
+            for i in range(nsteps):
+                self.walk_one_step(limited)
+                # Test if the site is already occupied
+                try_again = self.test_avoid()
+                # In case of self interception, break attempt immediately
+                if try_again is True:
+                    print('Managed to walk',len(self.visited_points)-1,'steps')
+                    self.restart()
+                    break
+        print('Managed to walk', len(self.visited_points) - 1, 'steps')
+
+    def test_avoid(self):
         """Implemented by child class"""
         pass
 
@@ -120,21 +138,11 @@ class Grid_walker(Walker):
         # Update list of visited points
         self.visited_points.append(current_pos)
 
-    def walk_with_self_avoid(self,nsteps=100,limited=True):
-        """Walk nsteps steps of self-avoiding random walk"""
-        self.restart()
-        try_again = True
-        while try_again is True:
-            try_again = False
-            for i in range(nsteps):
-                self.walk_one_step(limited)
-                #In case of self-interception, abort attempt and retry
-                if self.visited_points[-1] in self.visited_points[:-1]:
-                    print('Managed to walk',len(self.visited_points)-1,'steps')
-                    self.restart()
-                    try_again = True
-                    break
-        print('Managed to walk', len(self.visited_points) - 1, 'steps')
+    def test_avoid(self):
+        """Test if latest site is already occupied. Return True if so, False if not."""
+        if any(t == self.visited_points[-1] for t in self.visited_points[:-1]):
+            return True
+        return False
 
 class Freely_jointed_chain(Walker):
     def walk_one_step(self, limited=False):
@@ -161,24 +169,6 @@ class Freely_jointed_chain(Walker):
         # Update list of visited points
         self.visited_points.append(current_pos)
 
-    def walk_with_self_avoid(self,nsteps=100,limited=True):
-        """Walk nsteps steps of self-avoiding random walk"""
-        self.restart()
-        try_again = True
-        # Try to assemble a sequence until successful
-        while try_again is True:
-            try_again = False
-            for i in range(nsteps):
-                self.walk_one_step(limited)
-                # Test if the site is already occupied
-                try_again = self.test_avoid()
-                # In case of self interception, break attempt immediately
-                if try_again is True:
-                    print('Managed to walk',len(self.visited_points)-1,'steps')
-                    self.restart()
-                    break
-        print('Managed to walk', len(self.visited_points) - 1, 'steps')
-
     def test_avoid(self):
         """Test if latest site is already occupied"""
         #The distance between neighboring sphere centres is self.r, so each sphere has radius 1/2*self.r
@@ -189,6 +179,20 @@ class Freely_jointed_chain(Walker):
                 return True
         return False
 
+    def walk_with_self_avoid_cheating(self,nsteps=100,limited=True):
+        """Walk nsteps of self-avoiding random walk. If crossing own path, only redo the last step (maximum 100 times)."""
+        self.restart()
+        for i in range(nsteps):
+            self.walk_one_step(limited)
+            counter = 0
+            while counter<100:
+                if self.test_avoid():
+                    counter += 1
+                else:
+                    break
+            if counter == 100:
+                print('Managed to walk', len(self.visited_points) - 1, 'steps')
+                break
 
 def get_cmap(n, name='hsv'):
     '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
@@ -199,14 +203,14 @@ def main():
     gridwalk = Grid_walker()
     # gridwalk.plot_multiple_end_to_end_distances()
     # print(gridwalk.get_multiple_end_to_end_distances(nwalks=10,avoid=False))
-    # gridwalk.walk_without_avoid(nsteps=100,limited=True)
-    # gridwalk.walk_with_self_avoid(nsteps=50)
-    # gridwalk.plot_the_walk(beads=False)
+    # gridwalk.walk_without_avoid(nsteps=100,limited=False)
+    gridwalk.walk_with_self_avoid(nsteps=50,limited=True)
+    gridwalk.plot_the_walk(beads=False)
 
-    chainwalk = Freely_jointed_chain()
+    # chainwalk = Freely_jointed_chain()
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=100)
     # chainwalk.walk_without_avoid(nsteps=100,limited=True)
-    chainwalk.walk_with_self_avoid(nsteps=100,limited=True)
-    chainwalk.plot_the_walk(beads=False)
+    # chainwalk.walk_with_self_avoid(nsteps=100,limited=True)
+    # chainwalk.plot_the_walk(beads=False)
 
 main()
