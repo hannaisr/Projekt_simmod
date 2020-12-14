@@ -28,7 +28,7 @@ class Walker():
         for i in range(nsteps):
             self.walk_one_step(limited)
 
-    def walk_with_self_avoid(self,nsteps=100,limited=True):
+    def walk_with_self_avoid(self,nsteps=100,limited=True,tries_per_step=100):
         """Walk nsteps steps of self-avoiding random walk"""
         self.restart()
         try_again = True
@@ -37,11 +37,14 @@ class Walker():
             try_again = False
             for i in range(nsteps):
                 self.walk_one_step(limited)
-                # Test if the site is already occupied
-                try_again = self.test_avoid()
+                # Test if the site is already occupied. Try again a maximum of tries_per_step times if it happens to be true
+                for j in range(tries_per_step):
+                    try_again=self.test_avoid
+                    if try_again is False:
+                        break
                 # In case of self interception, break attempt immediately
                 if try_again is True:
-                    print('Managed to walk',len(self.visited_points)-1,'steps')
+                    print('Managed to walk',len(self.visited_points)-2,'steps')
                     self.restart()
                     break
         print('Managed to walk', len(self.visited_points) - 1, 'steps')
@@ -179,38 +182,23 @@ class Freely_jointed_chain(Walker):
                 return True
         return False
 
-    def walk_with_self_avoid_cheating(self,nsteps=100,limited=True):
-        """Walk nsteps of self-avoiding random walk. If crossing own path, only redo the last step (maximum 100 times)."""
-        self.restart()
-        for i in range(nsteps):
-            self.walk_one_step(limited)
-            counter = 0
-            while counter<100:
-                if self.test_avoid():
-                    counter += 1
-                else:
-                    break
-            if counter == 100:
-                print('Managed to walk', len(self.visited_points) - 1, 'steps')
-                break
-
 def get_cmap(n, name='hsv'):
     '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
     RGB color; the keyword argument name must be a standard mpl colormap name.'''
     return plt.cm.get_cmap(name, n + 1)
 
 def main():
-    gridwalk = Grid_walker()
+    # gridwalk = Grid_walker()
     # gridwalk.plot_multiple_end_to_end_distances()
     # print(gridwalk.get_multiple_end_to_end_distances(nwalks=10,avoid=False))
     # gridwalk.walk_without_avoid(nsteps=100,limited=False)
-    gridwalk.walk_with_self_avoid(nsteps=50,limited=True)
-    gridwalk.plot_the_walk(beads=False)
+    # gridwalk.walk_with_self_avoid(nsteps=100,limited=True)
+    # gridwalk.plot_the_walk(beads=False)
 
     # chainwalk = Freely_jointed_chain()
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=100)
     # chainwalk.walk_without_avoid(nsteps=100,limited=True)
-    # chainwalk.walk_with_self_avoid(nsteps=100,limited=True)
+    # chainwalk.walk_with_self_avoid(nsteps=50000,limited=True)
     # chainwalk.plot_the_walk(beads=False)
 
 main()
