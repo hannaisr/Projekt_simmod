@@ -186,6 +186,21 @@ class Freely_jointed_chain(Walker):
                 return True
         return False
 
+class Directed_walker(Freely_jointed_chain):
+    """Walks in specific direction with specified distribution."""
+    def walk_one_step(self, limited=False):
+        current_pos = self.visited_points[-1][:]
+        # Get walking direction
+        theta = rnd.normalvariate(np.pi/2,np.pi/4)
+        phi = rnd.normalvariate(np.pi,np.pi/2)
+        self.last_direction = [theta,phi]
+        # Update the coordinates
+        current_pos[0] += self.r*np.sin(theta)*np.cos(phi)
+        current_pos[1] += self.r*np.sin(theta)*np.sin(phi)
+        current_pos[2] += self.r*np.cos(theta)
+        # Update list of visited points
+        self.visited_points.append(current_pos)
+
 def get_cmap(n, name='hsv'):
     '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
     RGB color; the keyword argument name must be a standard mpl colormap name.'''
@@ -204,5 +219,9 @@ def main():
     # chainwalk.walk_without_avoid(nsteps=100,limited=True)
     # chainwalk.walk_with_self_avoid(nsteps=100,limited=True)
     # chainwalk.plot_the_walk(beads=False)
+
+    # dirwalk = Directed_walker()
+    # dirwalk.walk_with_self_avoid(nsteps=300)
+    # dirwalk.plot_the_walk(beads=False)
 
 main()
