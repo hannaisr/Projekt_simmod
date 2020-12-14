@@ -16,16 +16,17 @@ class Walker():
     rho = 0.2
 
     # Store last walking direction
-    last_direction = [-1]
+    last_direction = 0
 
     def walk_one_step(self):
         """Implemented by child class"""
         pass
 
-    def walk_without_avoid(self,nsteps=100):
+    def walk_without_avoid(self,nsteps=100, limited=False):
         """Walk nsteps steps of non-self-avoiding random walk."""
+        self.restart()
         for i in range(nsteps):
-            self.walk_one_step()
+            self.walk_one_step(limited)
 
     def walk_with_self_avoid(self,nsteps=100):
         """Implemented by child class"""
@@ -33,7 +34,8 @@ class Walker():
 
     def restart(self):
         """Resets list of visited points."""
-        self.visited_points = [origin]
+        self.visited_points = [self.origin]
+        self.last_direction = 0
 
     def plot_the_walk(self,beads=False):
         """Plots the walk in 3D."""
@@ -99,9 +101,9 @@ class Grid_walker(Walker):
         # Get walking direction
         direction = rnd.choice(possible_directions)
         if limited == True:
-            while direction == -last_direction:
+            while direction == -self.last_direction:
                 direction = rnd.choice(possible_directions)
-        last_direction = direction
+        self.last_direction = direction
         # Update the coordinates
         if direction == 1:
             current_pos[0] += 1
@@ -118,13 +120,14 @@ class Grid_walker(Walker):
         # Update list of visited points
         self.visited_points.append(current_pos)
 
-    def walk_with_self_avoid(self,nsteps=100):
+    def walk_with_self_avoid(self,nsteps=100,limited=True):
         """Walk nsteps steps of self-avoiding random walk"""
+        self.restart()
         try_again = True
         while try_again is True:
             try_again = False
             for i in range(nsteps):
-                self.walk_one_step()
+                self.walk_one_step(limited)
                 #In case of self-interception, abort attempt and retry
                 if self.visited_points[-1] in self.visited_points[:-1]:
                     print('Managed to walk',len(self.visited_points)-1,'steps')
@@ -134,11 +137,23 @@ class Grid_walker(Walker):
         print('Managed to walk', len(self.visited_points) - 1, 'steps')
 
 class Freely_jointed_chain(Walker):
-    def walk_one_step(self):
+    def walk_one_step(self, limited=False):
         current_pos = self.visited_points[-1][:]
         # Get walking direction
-        theta = rnd.uniform(0,np.pi)
-        phi = rnd.uniform(0,2*np.pi)
+        if limited == True and self.last_direction != 0:
+            # Define direction to walk back the same way
+            theta_back = np.pi-self.last_direction[0]
+            phi_back = np.pi+self.last_direction[1]
+            # Define accepted angles in order to not walk back the same way
+            accepted_theta = [theta_back+self.rho,2*np.pi+theta_back-self.rho]  # - TODO - intervallet är nu för stort och kan göras mer exakt.
+            accepted_phi =  [phi_back+self.rho,2*np.pi+phi_back-self.rho]
+            # Get new direction
+            theta = rnd.uniform(accepted_theta[0],accepted_theta[1])
+            phi = rnd.uniform(accepted_phi[0],accepted_phi[1])
+        else:
+            theta = rnd.uniform(0,np.pi)
+            phi = rnd.uniform(0,2*np.pi)
+        self.last_direction = [theta,phi]
         # Update the coordinates
         current_pos[0] += self.r*np.sin(theta)*np.cos(phi)
         current_pos[1] += self.r*np.sin(theta)*np.sin(phi)
@@ -146,14 +161,15 @@ class Freely_jointed_chain(Walker):
         # Update list of visited points
         self.visited_points.append(current_pos)
 
-    def walk_with_self_avoid(self,nsteps=100):
+    def walk_with_self_avoid(self,nsteps=100,limited=True):
         """Walk nsteps steps of self-avoiding random walk"""
+        self.restart()
         try_again = True
         # Try to assemble a sequence until successful
         while try_again is True:
             try_again = False
             for i in range(nsteps):
-                self.walk_one_step()
+                self.walk_one_step(limited)
                 # Test if the site is already occupied
                 try_again = self.test_avoid()
                 # In case of self interception, break attempt immediately
@@ -179,15 +195,18 @@ def get_cmap(n, name='hsv'):
     RGB color; the keyword argument name must be a standard mpl colormap name.'''
     return plt.cm.get_cmap(name, n + 1)
 
-gridwalk = Grid_walker()
-# gridwalk.plot_multiple_end_to_end_distances()
-# print(gridwalk.get_multiple_end_to_end_distances(nwalks=10,avoid=False))
-# gridwalk.walk_without_avoid(nsteps=100)
-# gridwalk.walk_with_self_avoid(nsteps=50)
-# gridwalk.plot_the_walk(beads=False)
+def main():
+    gridwalk = Grid_walker()
+    # gridwalk.plot_multiple_end_to_end_distances()
+    # print(gridwalk.get_multiple_end_to_end_distances(nwalks=10,avoid=False))
+    # gridwalk.walk_without_avoid(nsteps=100,limited=True)
+    # gridwalk.walk_with_self_avoid(nsteps=50)
+    # gridwalk.plot_the_walk(beads=False)
 
-# chainwalk = Freely_jointed_chain()
-# chainwalk.plot_multiple_end_to_end_distances(nwalks=100)
-# chainwalk.walk_without_avoid(nsteps=500)
-# chainwalk.walk_with_self_avoid(nsteps=50)
-# chainwalk.plot_the_walk(beads=True)
+    chainwalk = Freely_jointed_chain()
+    # chainwalk.plot_multiple_end_to_end_distances(nwalks=100)
+    # chainwalk.walk_without_avoid(nsteps=100,limited=True)
+    chainwalk.walk_with_self_avoid(nsteps=100,limited=True)
+    chainwalk.plot_the_walk(beads=False)
+
+main()
