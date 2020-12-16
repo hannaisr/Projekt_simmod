@@ -164,9 +164,11 @@ class Freely_jointed_chain(Walker):
             # Define direction to walk back the same way
             theta_back = np.pi-self.last_direction[0]
             phi_back = np.pi+self.last_direction[1]
+            # Define angle for resctriction cone
+            alpha = 2*np.arsin(self.rho/self.r)
             # Define accepted angles in order to not walk back the same way
-            accepted_theta = [theta_back+self.rho,2*np.pi+theta_back-self.rho]  # - TODO - intervallet är nu för stort och kan göras mer exakt.
-            accepted_phi =  [phi_back+self.rho,2*np.pi+phi_back-self.rho]
+            accepted_theta = [theta_back+alpha),2*np.pi+theta_back-alpha]  # - TODO - intervallet är nu för stort och kan göras mer exakt.
+            accepted_phi =  [phi_back+alpha,2*np.pi+phi_back-alpha]
             # Get new direction
             theta = rnd.uniform(accepted_theta[0],accepted_theta[1])
             phi = rnd.uniform(accepted_phi[0],accepted_phi[1])
