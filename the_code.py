@@ -214,14 +214,15 @@ def main():
     # gridwalk.walk_with_self_avoid(nsteps=100,limited=True)
     # gridwalk.plot_the_walk(beads=False)
 
-    # chainwalk = Freely_jointed_chain()
+    chainwalk = Freely_jointed_chain()
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=100)
-    # chainwalk.walk_without_avoid(nsteps=100,limited=True)
-    # chainwalk.walk_with_self_avoid(nsteps=100,limited=True)
+    # chainwalk.walk_without_avoid(nsteps=1000,limited=False)
     # chainwalk.plot_the_walk(beads=False)
+    chainwalk.walk_with_self_avoid(nsteps=10000,limited=True)
+    chainwalk.plot_the_walk(beads=False)
 
     # dirwalk = Directed_walker()
-    # dirwalk.walk_with_self_avoid(nsteps=300)
+    # dirwalk.walk_without_avoid(nsteps=1000)
     # dirwalk.plot_the_walk(beads=False)
 
 main()
