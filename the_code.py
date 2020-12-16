@@ -29,9 +29,12 @@ class Walker():
         for i in range(nsteps):
             self.walk_one_step(limited)
 
-    def walk_with_self_avoid(self,nsteps=100,limited=True):
-        """Walk nsteps steps of self-avoiding random walk"""
-        tries_per_step = 100 # Maximum number of times to try again if the step is unacceptable
+    def walk_with_self_avoid(self,nsteps=100,limited=True,cheat=False):
+        """Walk nsteps steps of self-avoiding random walk. If cheat=True, each step is repeated until it is successful or it has failed 100 times."""
+        if cheat==True:
+            tries_per_step = 100 # Maximum number of times to try again if the step is unacceptable
+        else:
+            tries_per_step = 1
 
         self.restart()
         try_again = True
