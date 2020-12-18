@@ -8,16 +8,16 @@ class Walker():
     # Initiate list of visited points
     origin = [0,0,0]
     visited_points = [origin]
+    length = 0
 
     # Define step length
     r = 1
 
     # Define bead radius, at largest 1/2*r (preferrably smaller than 1/2*r)
-    rho = 0.4999
+    rho = 0.1
 
     # Store last walking direction
     last_direction = 0
-    last_directionList = [0,0,0]
 
     def walk_one_step(self, limited=False):
         """Implemented by child class"""
@@ -95,6 +95,7 @@ class Walker():
         """Resets list of visited points."""
         self.visited_points = [self.origin]
         self.last_direction = 0
+        self.length = 0
 
     def plot_the_walk(self,beads=False):
         """Plots the walk in 3D."""
@@ -107,7 +108,7 @@ class Walker():
         if beads is True:
             cmap = get_cmap(len(x))
             for i in range(len(x)):
-                phi, theta = np.mgrid[0:2 * np.pi:20j, 0:np.pi:10j]
+                phi, theta = np.mgrid[0:2 * np.pi:200j, 0:np.pi:100j]
                 x_sphere = x[i] + self.rho * np.cos(phi) * np.sin(theta)
                 y_sphere = y[i] + self.rho * np.sin(phi) * np.sin(theta)
                 z_sphere = z[i] + self.rho * np.cos(theta)
@@ -122,6 +123,7 @@ class Walker():
     def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False):
         """Returns a list of end-to-end distances for nwalks number of walks of length nsteps"""
         etedist_list = np.zeros(nwalks)
+        length_list = np.zeros(nwalks)
         for i in range(nwalks):
             self.restart()
             if avoid is True:
@@ -129,7 +131,8 @@ class Walker():
             else:
                 self.walk_without_avoid(nsteps=nsteps)
             etedist_list[i] = self.get_end_to_end_distance()
-        return etedist_list
+            length_list[i] = self.length
+        return etedist_list, length_list
 
     def plot_multiple_end_to_end_distances(self,nwalks=10,avoid=False):
         """Plots end-to-end distance RMS, RMS fluctuation and standard error estimate for nwalks walks by number of steps"""
@@ -138,7 +141,7 @@ class Walker():
         std_err = []
         step_numbers = range(100,1100,100)
         for nsteps in step_numbers:
-            etedist_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid)
+            etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid)
             #RMS end-to-end distance
             rms.append(np.sqrt(np.mean(np.square(etedist_list))))
             #RMS fluctuation estimate
@@ -151,6 +154,18 @@ class Walker():
         ax.plot(step_numbers,rms_fluc,label="RMS Fluctuation Estimate")
         ax.plot(step_numbers,std_err,label="Standard Error Estimate")
         ax.set_xlabel("Number of steps")
+        plt.legend()
+        plt.show()
+
+    def plot_quotient_length_etedist(self,nsteps=100,nwalks=10,avoid=False):
+        """Plots the quotient between total chain length and end-to-end distance"""
+        etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid)
+        quotients = [etedist_list[i]/length_list[i] for i in range(len(length_list))]
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.hist(x=quotients,bins=15)
+        ax.vlines(ymin=0,ymax=nwalks/5,x=np.mean(quotients),color='red',label="Mean")
+        ax.set_xlabel("End-to-End distance/length")
         plt.legend()
         plt.show()
 
@@ -179,6 +194,7 @@ class Grid_walker(Walker):
             current_pos[2] -= self.r
         # Update list of visited points
         self.visited_points.append(current_pos)
+        self.length += self.r
 
     def test_avoid(self):
         """Test if latest site is already occupied. Return True if so, False if not."""
@@ -214,6 +230,7 @@ class Freely_jointed_chain(Walker):
         current_pos[2] += self.r*np.cos(theta)              # z
         # Update list of visited points
         self.visited_points.append(current_pos)
+        self.length += self.r
 
     def test_avoid(self):
         """Test if latest site is already occupied - continuous case"""
@@ -242,7 +259,7 @@ class Directed_walker(Freely_jointed_chain):
         current_pos[2] += self.r*np.cos(theta)
         # Update list of visited points
         self.visited_points.append(current_pos)
-
+        self.length += self.r
 
 class Grid_walker_stepl_variations(Grid_walker, Freely_jointed_chain):
     """Parallell/perpendicular motion with a randomly distributed step length"""
@@ -274,6 +291,7 @@ class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
     def test_avoid(self):
         Freely_jointed_chain.test_avoid(self)
 
+
 def get_cmap(n, name='hsv'):
     '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
     RGB color; the keyword argument name must be a standard mpl colormap name.'''
@@ -286,8 +304,9 @@ def main():
     # gridwalk.walk_without_avoid(nsteps=100,limited=False)
     # gridwalk.walk_with_self_avoid(nsteps=50,limited=True)
     # gridwalk.plot_the_walk(beads=False)
-    print(gridwalk.success_rate(nsteps=10,limited=True))
-    print(gridwalk.success_rate(nsteps=10,limited=False))
+    # print(gridwalk.success_rate(nsteps=10,limited=True))
+    # print(gridwalk.success_rate(nsteps=10,limited=False))
+    # gridwalk.plot_quotient_length_etedist(nwalks=1000)
 
     chainwalk = Freely_jointed_chain()
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=100)
@@ -295,8 +314,10 @@ def main():
     # chainwalk.plot_the_walk(beads=False)
     # chainwalk.walk_with_self_avoid(nsteps=20,limited=True)
     # chainwalk.plot_the_walk(beads=False)
-    print(chainwalk.success_rate(nsteps=10,limited=True))
-    print(chainwalk.success_rate(nsteps=10,limited=False))
+    # print(chainwalk.success_rate(nsteps=10,limited=True))
+    # print(chainwalk.success_rate(nsteps=10,limited=False))
+    # chainwalk.plot_quotient_length_etedist(nwalks=1000)
+
 
     # dirwalk = Directed_walker()
     # dirwalk.walk_without_avoid(nsteps=1000)
@@ -304,17 +325,21 @@ def main():
     # dirwalk.plot_multiple_end_to_end_distances(avoid=False)
 
     grid_walker_stepl_variations = Grid_walker_stepl_variations()
-    # grid_walker_stepl_variations.walk_without_avoid(nsteps=10)
-    # grid_walker_stepl_variations.walk_with_self_avoid(nsteps=50,limited=True)
-    # grid_walker_stepl_variations.plot_the_walk(beads=False)
-    print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=True))
-    print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=False))
+    # grid_walker_stepl_variations.walk_without_avoid(nsteps=50)
+    # grid_walker_stepl_variations.walk_with_self_avoid(nsteps=10,limited=True)
+    # grid_walker_stepl_variations.plot_the_walk(beads=True)
+    # print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=True))
+    # print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=False))
+    # grid_walker_stepl_variations.plot_quotient_length_etedist(nwalks=1000)
+
 
     chainwalk_stepl_variations = Freely_jointed_chain_stepl_variations()
     # chainwalk_stepl_variations.walk_without_avoid(nsteps=10)
-    chainwalk_stepl_variations.walk_with_self_avoid(nsteps=50,limited=True)
-    chainwalk_stepl_variations.plot_the_walk(beads=False)
+    # chainwalk_stepl_variations.walk_with_self_avoid(nsteps=50,limited=True)
+    # chainwalk_stepl_variations.plot_the_walk(beads=True)
     # print(chainwalk_stepl_variations.success_rate(nsteps=10,limited=True))
     # print(chainwalk_stepl_variations.success_rate(nsteps=10,limited=False))
+    chainwalk_stepl_variations.plot_quotient_length_etedist(nwalks=1000)
+
 
 main()
