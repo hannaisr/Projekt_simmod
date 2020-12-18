@@ -9,6 +9,8 @@ class Walker():
     origin = [0,0,0]
     visited_points = [origin]
     length = 0
+    my=1
+    sigma=1
 
     # Define step length
     r = 1
@@ -268,9 +270,9 @@ class Grid_walker_stepl_variations(Grid_walker, Freely_jointed_chain):
 
     def walk_one_step(self, limited=False):
         if self.distribution == "N":
-            self.r = rnd.normalvariate(1,1) # Varation in step length
+            self.r = rnd.normalvariate(self.my,self.sigma) # Varation in step length
         elif self.distribution == "exp":
-            self.r = rnd.random.exponential(1) # Varation in step length
+            self.r = rnd.random.exponential(self.my) # Varation in step length
         Grid_walker.walk_one_step(self,limited)
 
     def test_avoid(self):
@@ -283,9 +285,9 @@ class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
 
     def walk_one_step(self, limited=False):
         if self.distribution == "N":
-            self.r = rnd.normalvariate(1, 1)  # Varation in step length
+            self.r = rnd.normalvariate(self.my,self.sigma)  # Varation in step length
         elif self.distribution == "exp":
-            self.r = rnd.random.exponential(1)  # Varation in step length
+            self.r = rnd.random.exponential(self.my)  # Varation in step length
         Freely_jointed_chain.walk_one_step(self,limited)
 
     def test_avoid(self):
