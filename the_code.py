@@ -13,10 +13,10 @@ class Walker():
     sigma=1
 
     # Define step length
-    r = 1
+    r = my
 
     # Define bead radius, at largest 1/2*r (preferrably smaller than 1/2*r)
-    rho = 0.1
+    rho = 0.2
 
     # Store last walking direction
     last_direction = 0
@@ -122,28 +122,28 @@ class Walker():
         last_point = self.visited_points[-1]
         return np.sqrt((last_point[0]-self.origin[0])**2+(last_point[1]-self.origin[1])**2+(last_point[2]-self.origin[2])**2)
 
-    def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False):
+    def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False,limited=True):
         """Returns a list of end-to-end distances for nwalks number of walks of length nsteps"""
         etedist_list = np.zeros(nwalks)
         length_list = np.zeros(nwalks)
         for i in range(nwalks):
             self.restart()
             if avoid is True:
-                self.walk_with_self_avoid(nsteps=nsteps)
+                self.walk_with_self_avoid(nsteps=nsteps,limited=limited)
             else:
                 self.walk_without_avoid(nsteps=nsteps)
             etedist_list[i] = self.get_end_to_end_distance()
             length_list[i] = self.length
         return etedist_list, length_list
 
-    def plot_multiple_end_to_end_distances(self,nwalks=10,avoid=False):
+    def plot_multiple_end_to_end_distances(self,nwalks=10,avoid=False,limited=True):
         """Plots end-to-end distance RMS, RMS fluctuation and standard error estimate for nwalks walks by number of steps"""
         rms=[]
         rms_fluc = []
         std_err = []
         step_numbers = range(100,1100,100)
         for nsteps in step_numbers:
-            etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid)
+            etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited)
             #RMS end-to-end distance
             rms.append(np.sqrt(np.mean(np.square(etedist_list))))
             #RMS fluctuation estimate
@@ -159,9 +159,9 @@ class Walker():
         plt.legend()
         plt.show()
 
-    def plot_quotient_length_etedist(self,nsteps=100,nwalks=10,avoid=False):
+    def hist_quotient_length_etedist(self,nsteps=100,nwalks=10,avoid=False,limited=True):
         """Plots the quotient between total chain length and end-to-end distance"""
-        etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid)
+        etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited)
         quotients = [etedist_list[i]/length_list[i] for i in range(len(length_list))]
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -169,6 +169,37 @@ class Walker():
         ax.vlines(ymin=0,ymax=nwalks/5,x=np.mean(quotients),color='red',label="Mean")
         ax.set_xlabel("End-to-End distance/length")
         plt.legend()
+        plt.show()
+
+    def plot_bead_size_variation(self,nsteps=100,nwalks=10,my=True,success=False,limited=True):
+        """Plots the relationship between quotient bead size/my or sigma of step length and RMS End-to-End distance or success rate in self-avoiding chains"""
+        qs=[] #Quotients bead size/expected value of step length
+        rms=[]
+        success_rates=[]
+        for rho in range(0,20):
+            self.rho=rho/100
+            if my==True: #Bead size by expected value
+                qs.append(2*self.rho/self.my)
+            else: #Bead size by standard deviation
+                qs.append(2*self.rho/self.sigma)
+            if success==False:#y=RMS
+                etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps, nwalks=nwalks, avoid=True, limited=limited)
+                rms.append(np.sqrt(np.mean(np.square(etedist_list))))
+            else:#y=Success rate
+                success_rates.append(self.success_rate())
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        if my==True:
+            ax.set_xlabel("Bead diameter/Expected value of step length")
+        else:
+            ax.set_xlabel("Bead diameter/Standard deviation of step length")
+        if success == False:
+            ax.plot(qs,rms)
+            ax.set_ylabel("RMS end-to-end distance")
+        else:
+            ax.plot(qs,success_rates)
+            ax.set_ylabel("Success rate")
+        plt.suptitle("Self-avoiding walk")
         plt.show()
 
 class Grid_walker(Walker):
@@ -276,7 +307,7 @@ class Grid_walker_stepl_variations(Grid_walker, Freely_jointed_chain):
         Grid_walker.walk_one_step(self,limited)
 
     def test_avoid(self):
-        Freely_jointed_chain.test_avoid(self)
+        pass
 
 class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
     """Freely jointed chain with randomly distributed step lengths"""
@@ -291,8 +322,7 @@ class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
         Freely_jointed_chain.walk_one_step(self,limited)
 
     def test_avoid(self):
-        Freely_jointed_chain.test_avoid(self)
-
+        pass
 
 def get_cmap(n, name='hsv'):
     '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
@@ -308,7 +338,7 @@ def main():
     # gridwalk.plot_the_walk(beads=False)
     # print(gridwalk.success_rate(nsteps=10,limited=True))
     # print(gridwalk.success_rate(nsteps=10,limited=False))
-    # gridwalk.plot_quotient_length_etedist(nwalks=1000)
+    # gridwalk.hist_quotient_length_etedist(nwalks=1000)
 
     chainwalk = Freely_jointed_chain()
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=100)
@@ -318,8 +348,9 @@ def main():
     # chainwalk.plot_the_walk(beads=False)
     # print(chainwalk.success_rate(nsteps=10,limited=True))
     # print(chainwalk.success_rate(nsteps=10,limited=False))
-    # chainwalk.plot_quotient_length_etedist(nwalks=1000)
-
+    # chainwalk.hist_quotient_length_etedist(nwalks=1000)
+    # chainwalk.plot_bead_size_variation()
+    # chainwalk.plot_bead_size_variation(success=True)
 
     # dirwalk = Directed_walker()
     # dirwalk.walk_without_avoid(nsteps=1000)
@@ -332,16 +363,34 @@ def main():
     # grid_walker_stepl_variations.plot_the_walk(beads=True)
     # print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=True))
     # print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=False))
-    # grid_walker_stepl_variations.plot_quotient_length_etedist(nwalks=1000)
+    # grid_walker_stepl_variations.hist_quotient_length_etedist(nwalks=1000)
+    # grid_walker_stepl_variations.plot_bead_size_variation()
+    # grid_walker_stepl_variations.plot_bead_size_variation(success=True)
 
-
-    chainwalk_stepl_variations = Freely_jointed_chain_stepl_variations()
+    chainwalk_stepl_variations = Freely_jointed_chain_stepl_variations() #TODO: The self-avoiding walk is not working
     # chainwalk_stepl_variations.walk_without_avoid(nsteps=10)
-    # chainwalk_stepl_variations.walk_with_self_avoid(nsteps=50,limited=True)
-    # chainwalk_stepl_variations.plot_the_walk(beads=True)
+    # chainwalk_stepl_variations.walk_with_self_avoid(nsteps=5,limited=False)
+    # chainwalk_stepl_variations.plot_the_walk(beads=False)
     # print(chainwalk_stepl_variations.success_rate(nsteps=10,limited=True))
     # print(chainwalk_stepl_variations.success_rate(nsteps=10,limited=False))
-    chainwalk_stepl_variations.plot_quotient_length_etedist(nwalks=1000)
+    # chainwalk_stepl_variations.hist_quotient_length_etedist(nwalks=1000)
+    # chainwalk_stepl_variations.plot_bead_size_variation(limited=False)
+    # chainwalk_stepl_variations.plot_bead_size_variation(success=True,limited=False)
 
 
 main()
+
+#In case of different bead sizes in the chain:
+#rhos=[]
+def test_avoid_beads(self):
+    """Test if latest site is already occupied - continuous case"""
+    # The distance between successive sphere centres is self.r. Interception between any two spheres occurs if their centres are less apart than the sum of their radii
+    for i in range(len(self.visited_points[:-1])):
+        point = self.visited_points[:-1][i]
+        r_centres = np.sqrt(
+            (point[0] - self.visited_points[-1][0]) ** 2 + (point[1] - self.visited_points[-1][1]) ** 2 + (
+                    point[2] - self.visited_points[-1][2]) ** 2)
+        if r_centres < self.rho + self.rhos[i]:
+            # Self-intercept - needs to restart the process
+            return True
+    return False
