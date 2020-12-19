@@ -16,7 +16,7 @@ class Walker():
     r = my
 
     # Define bead radius, at largest 1/2*r (preferrably smaller than 1/2*r)
-    rho = 0.2
+    rho = 80
 
     # Store last walking direction
     last_direction = 0
@@ -307,7 +307,7 @@ class Grid_walker_stepl_variations(Grid_walker, Freely_jointed_chain):
         Grid_walker.walk_one_step(self,limited)
 
     def test_avoid(self):
-        pass
+        Freely_jointed_chain.test_avoid(self)
 
 class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
     """Freely jointed chain with randomly distributed step lengths"""
@@ -322,7 +322,7 @@ class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
         Freely_jointed_chain.walk_one_step(self,limited)
 
     def test_avoid(self):
-        pass
+        Freely_jointed_chain.test_avoid(self)
 
 def get_cmap(n, name='hsv'):
     '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
@@ -369,8 +369,8 @@ def main():
 
     chainwalk_stepl_variations = Freely_jointed_chain_stepl_variations() #TODO: The self-avoiding walk is not working
     # chainwalk_stepl_variations.walk_without_avoid(nsteps=10)
-    # chainwalk_stepl_variations.walk_with_self_avoid(nsteps=5,limited=False)
-    # chainwalk_stepl_variations.plot_the_walk(beads=False)
+    chainwalk_stepl_variations.walk_with_self_avoid(nsteps=5,limited=False)
+    chainwalk_stepl_variations.plot_the_walk(beads=False)
     # print(chainwalk_stepl_variations.success_rate(nsteps=10,limited=True))
     # print(chainwalk_stepl_variations.success_rate(nsteps=10,limited=False))
     # chainwalk_stepl_variations.hist_quotient_length_etedist(nwalks=1000)
