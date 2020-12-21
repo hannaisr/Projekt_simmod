@@ -278,6 +278,53 @@ class Freely_jointed_chain(Walker):
         return False
         # TODO Implement method for avoiding previous _paths_, not just previous positions.
 
+class Reptation_walker(Walker,Grid_walker):
+    """Reptation algorithm to generate a collection of SAW"""
+    #TODO: Extend to generate multiple walks
+    
+    def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False,limited=True):
+        #Generate a self-avoiding walk
+        gridwalk = Grid_walker()
+        gridwalk.walk_with_self_avoid()
+        saw = gridwalk.visited_points
+        #Choose an end point at random
+        choice = rnd.choice([0, -1])
+        #Remove this end
+        saw.pop(choice) #One end
+        #Add a step on the other end identified as "current_pos"
+        current_pos = list(saw[choice * (-1) - 1])  # The other end
+        prev_pos = saw[choice * (-1) + (choice + 1) * (-2)] #om choice i -1: prev_pos index= 1; om choice i 0: prev_pos index= -2
+        # Get walking direction
+        possible_directions = [-3, -2, -1, 1, 2, 3]
+        direction = rnd.choice(possible_directions)
+        #Get the last direction
+        for i in range(3):
+            step = current_pos[i] - prev_pos[i] #Step is either +1 or -1
+            if abs(step) > 0:
+                last_direction = (i + 1) * step
+                break
+        if limited == True: #Should always be True
+            while direction == -last_direction:
+                direction = rnd.choice(possible_directions)
+        # Update the coordinates
+        if direction == 1:
+            current_pos[0] += self.r
+        elif direction == -1:
+            current_pos[0] -= self.r
+        elif direction == 2:
+            current_pos[1] += self.r
+        elif direction == -2:
+            current_pos[1] -= self.r
+        elif direction == 3:
+            current_pos[2] += self.r
+        elif direction == -3:
+            current_pos[2] -= self.r
+        # Update list of visited points
+        if choice == -1:
+            saw.insert(0, current_pos)
+        else:
+            saw.append(current_pos)
+
 class Directed_walker(Freely_jointed_chain):
     """Walks in specific direction with specified distribution."""
     def walk_one_step(self, limited=False):
