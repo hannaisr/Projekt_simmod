@@ -3,20 +3,21 @@ import numpy as np
 import matplotlib.pyplot as plt # For 3D plot
 from mpl_toolkits.mplot3d import Axes3D # For 3D plot
 
+
 class Walker():
     """Walked positions are stored in a list"""
     # Initiate list of visited points
     origin = [0,0,0]
     visited_points = [origin]
     length = 0
-    my=1
-    sigma=1
+    my=10
+    sigma=10
 
     # Define step length
     r = my
 
     # Define bead radius, at largest 1/2*r (preferrably smaller than 1/2*r)
-    rho = 80
+    rho = 0.2
 
     # Store last walking direction
     last_direction = 0
@@ -123,7 +124,7 @@ class Walker():
         return np.sqrt((last_point[0]-self.origin[0])**2+(last_point[1]-self.origin[1])**2+(last_point[2]-self.origin[2])**2)
 
     def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False,limited=True):
-        """Returns a list of end-to-end distances for nwalks number of walks of length nsteps"""
+        """Returns a list of end-to-end distances and chain lengths for nwalks number of walks of length nsteps"""
         etedist_list = np.zeros(nwalks)
         length_list = np.zeros(nwalks)
         for i in range(nwalks):
@@ -176,7 +177,7 @@ class Walker():
         qs=[] #Quotients bead size/expected value of step length
         rms=[]
         success_rates=[]
-        for rho in range(0,20):
+        for rho in range(0,10):
             self.rho=rho/100
             if my==True: #Bead size by expected value
                 qs.append(2*self.rho/self.my)
@@ -186,7 +187,7 @@ class Walker():
                 etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps, nwalks=nwalks, avoid=True, limited=limited)
                 rms.append(np.sqrt(np.mean(np.square(etedist_list))))
             else:#y=Success rate
-                success_rates.append(self.success_rate())
+                success_rates.append(self.success_rate(nsteps=nsteps))
         fig = plt.figure()
         ax = fig.add_subplot(111)
         if my==True:
@@ -278,22 +279,39 @@ class Freely_jointed_chain(Walker):
         return False
         # TODO Implement method for avoiding previous _paths_, not just previous positions.
 
-class Reptation_walker(Walker,Grid_walker):
-    """Reptation algorithm to generate a collection of SAW"""
-    #TODO: Extend to generate multiple walks
-    
-    def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False,limited=True):
-        #Generate a self-avoiding walk
-        gridwalk = Grid_walker()
-        gridwalk.walk_with_self_avoid()
-        saw = gridwalk.visited_points
+class Reptation_walker(Grid_walker):
+    """Reptation algorithm to generate SAWs. Algoritm on hiskp.uni-bonn... pg. 4"""
+    def __init__(self,nsteps=100):
+        # Generate a basis self-avoiding walk
+        self.gridwalk = Grid_walker()
+        self.gridwalk.walk_with_self_avoid(nsteps=nsteps)
+        self.visited_points = self.gridwalk.visited_points #The gridwalk.visited_points will be modified as saw is
+        self.nsteps=nsteps
+
+    def test_avoid(self):
+        """Test if latest site is already occupied. Return True if so, False if not."""
+        if self.visited_points[0] == self.visited_points[-1]:
+            return True
+        elif any(t == self.visited_points[-1] or t == self.visited_points[0] for t in self.visited_points[1:-1]):
+            return True
+        return False
+
+    def walk_with_self_avoid(self,nsteps=100,limited=True):
+        """Generates a new SAW using the reptation model based on the initialized SAW"""
+        #TODO: The signatures of the methods aren't optimal since the methods are slightly different, but it works
+        #Save a copy of the old saw #TODO: Performance improvement possible if computational cost is an issue
+        old_visited_points = list(self.visited_points)
+        #Length nsteps defined in class attribute
+        self.length = self.nsteps*self.r
+
+        #***Algorithm start***
         #Choose an end point at random
         choice = rnd.choice([0, -1])
         #Remove this end
-        saw.pop(choice) #One end
+        self.visited_points.pop(choice) #One end
         #Add a step on the other end identified as "current_pos"
-        current_pos = list(saw[choice * (-1) - 1])  # The other end
-        prev_pos = saw[choice * (-1) + (choice + 1) * (-2)] #om choice i -1: prev_pos index= 1; om choice i 0: prev_pos index= -2
+        current_pos = list(self.visited_points[choice * (-1) - 1])  # The other end
+        prev_pos = self.visited_points[choice * (-1) + (choice + 1) * (-2)] #om choice i -1: prev_pos index= 1; om choice i 0: prev_pos index= -2
         # Get walking direction
         possible_directions = [-3, -2, -1, 1, 2, 3]
         direction = rnd.choice(possible_directions)
@@ -303,9 +321,8 @@ class Reptation_walker(Walker,Grid_walker):
             if abs(step) > 0:
                 last_direction = (i + 1) * step
                 break
-        if limited == True: #Should always be True
-            while direction == -last_direction:
-                direction = rnd.choice(possible_directions)
+        while direction == -last_direction:
+            direction = rnd.choice(possible_directions)
         # Update the coordinates
         if direction == 1:
             current_pos[0] += self.r
@@ -321,9 +338,24 @@ class Reptation_walker(Walker,Grid_walker):
             current_pos[2] -= self.r
         # Update list of visited points
         if choice == -1:
-            saw.insert(0, current_pos)
+            self.visited_points.insert(0, current_pos)
         else:
-            saw.append(current_pos)
+            self.visited_points.append(current_pos)
+        # In case of self-intersection: revert to previous configuration. Else, retain new configuration #TODO: Is this the right interpretation?
+        if self.test_avoid() == True:
+            self.visited_points = old_visited_points
+        self.gridwalk.visited_points = self.visited_points
+        return 0
+
+    def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False,limited=True):
+        """Returns a list of end-to-end distances and chain lengths for nwalks number of walks"""
+        etedist_list = np.zeros(nwalks)
+        length_list = np.zeros(nwalks)
+        for i in range(nwalks):
+            self.walk_with_self_avoid()
+            etedist_list[i] = self.get_end_to_end_distance()
+            length_list[i] = self.length
+        return etedist_list, length_list
 
 class Directed_walker(Freely_jointed_chain):
     """Walks in specific direction with specified distribution."""
@@ -350,11 +382,10 @@ class Grid_walker_stepl_variations(Grid_walker, Freely_jointed_chain):
         if self.distribution == "N":
             self.r = rnd.normalvariate(self.my,self.sigma) # Varation in step length
         elif self.distribution == "exp":
-            self.r = rnd.random.exponential(self.my) # Varation in step length
+            self.r = rnd.expovariate(1/self.my) # Varation in step length
         Grid_walker.walk_one_step(self,limited)
-
     def test_avoid(self):
-        Freely_jointed_chain.test_avoid(self)
+        return Freely_jointed_chain.test_avoid(self)
 
 class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
     """Freely jointed chain with randomly distributed step lengths"""
@@ -365,11 +396,8 @@ class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
         if self.distribution == "N":
             self.r = rnd.normalvariate(self.my,self.sigma)  # Varation in step length
         elif self.distribution == "exp":
-            self.r = rnd.random.exponential(self.my)  # Varation in step length
+            self.r = rnd.expovariate(1/self.my)  # Varation in step length
         Freely_jointed_chain.walk_one_step(self,limited)
-
-    def test_avoid(self):
-        Freely_jointed_chain.test_avoid(self)
 
 def get_cmap(n, name='hsv'):
     '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
@@ -414,30 +442,19 @@ def main():
     # grid_walker_stepl_variations.plot_bead_size_variation()
     # grid_walker_stepl_variations.plot_bead_size_variation(success=True)
 
-    chainwalk_stepl_variations = Freely_jointed_chain_stepl_variations() #TODO: The self-avoiding walk is not working
-    # chainwalk_stepl_variations.walk_without_avoid(nsteps=10)
-    chainwalk_stepl_variations.walk_with_self_avoid(nsteps=5,limited=False)
-    chainwalk_stepl_variations.plot_the_walk(beads=False)
+    chainwalk_stepl_variations = Freely_jointed_chain_stepl_variations(distribution="N") #TODO: Very bad performance
+    # chainwalk_stepl_variations.walk_with_self_avoid(nsteps=10)
+    # chainwalk_stepl_variations.plot_the_walk(beads=True)
     # print(chainwalk_stepl_variations.success_rate(nsteps=10,limited=True))
     # print(chainwalk_stepl_variations.success_rate(nsteps=10,limited=False))
     # chainwalk_stepl_variations.hist_quotient_length_etedist(nwalks=1000)
     # chainwalk_stepl_variations.plot_bead_size_variation(limited=False)
-    # chainwalk_stepl_variations.plot_bead_size_variation(success=True,limited=False)
+    # chainwalk_stepl_variations.plot_bead_size_variation(success=True,limited=False,nsteps=10) #Bad performace due to self.r too short too often (immediate self-intersection)
 
+    reptationwalk = Reptation_walker(nsteps=10)
+    #reptationwalk.walk_with_self_avoid()
+    #reptationwalk.plot_the_walk(beads=True)
+    #reptationwalk.plot_multiple_end_to_end_distances(nwalks=100)
 
 main()
 
-#In case of different bead sizes in the chain:
-#rhos=[]
-def test_avoid_beads(self):
-    """Test if latest site is already occupied - continuous case"""
-    # The distance between successive sphere centres is self.r. Interception between any two spheres occurs if their centres are less apart than the sum of their radii
-    for i in range(len(self.visited_points[:-1])):
-        point = self.visited_points[:-1][i]
-        r_centres = np.sqrt(
-            (point[0] - self.visited_points[-1][0]) ** 2 + (point[1] - self.visited_points[-1][1]) ** 2 + (
-                    point[2] - self.visited_points[-1][2]) ** 2)
-        if r_centres < self.rho + self.rhos[i]:
-            # Self-intercept - needs to restart the process
-            return True
-    return False
