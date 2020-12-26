@@ -136,7 +136,7 @@ class Walker():
             length_list[i] = self.length
         return etedist_list, length_list
 
-    def plot_multiple_end_to_end_distances(self,nwalks=10,avoid=False,limited=True):
+    def plot_multiple_end_to_end_distances(self,nwalks=100,avoid=False,limited=True):
         """Plots end-to-end distance RMS, RMS fluctuation and standard error estimate for nwalks walks by number of steps"""
         rms=[]
         rms_fluc = []
@@ -157,6 +157,21 @@ class Walker():
         ax.plot(step_numbers,std_err,label="Standard Error Estimate")
         ax.set_xlabel("Number of steps")
         plt.legend()
+        plt.show()
+
+    def plot_success_rate_vs_nsteps(self,limited=True):
+        """Plots success rate to number of steps in walk"""
+        step_numbers = range(10,120,10)
+        # step_numbers = range(1,30,5)
+        success_rates = []
+        for nsteps in step_numbers:
+            success_rates.append(self.success_rate(nsteps,limited))
+            print(success_rates)
+        fig = plt.figure()
+        plt.plot(step_numbers,success_rates)
+        plt.xlabel('Number of steps')
+        plt.ylabel('Success rate')
+        plt.title("Success rate vs number of steps for "+str(self.name))
         plt.show()
 
     def hist_quotient_length_etedist(self,nsteps=100,nwalks=10,avoid=False,limited=True):
@@ -208,6 +223,9 @@ class Walker():
         plt.show()
 
 class Grid_walker(Walker):
+    def __init__(self,name="Grid walker"):
+        self.name = name
+
     def walk_one_step(self, limited=False):
         possible_directions = [-3,-2,-1,1,2,3]
         current_pos = self.visited_points[-1][:]
@@ -243,6 +261,9 @@ class Grid_walker(Walker):
         return False
 
 class Freely_jointed_chain(Walker):
+    def __init__(self,name='Freely jointed chain'):
+        self.name=name
+
     def walk_one_step(self, limited=False):
         current_pos = self.visited_points[-1][:]
         # Get walking direction
@@ -285,12 +306,13 @@ class Freely_jointed_chain(Walker):
 
 class Reptation_walker(Grid_walker):
     """Reptation algorithm to generate SAWs. Algoritm on hiskp.uni-bonn... pg. 4"""
-    def __init__(self,nsteps=100):
+    def __init__(self,nsteps=100,name='Reptation walker'):
         # Generate a basis self-avoiding walk
         self.gridwalk = Grid_walker()
         self.gridwalk.walk_with_self_avoid(nsteps=nsteps)
         self.visited_points = self.gridwalk.visited_points #The gridwalk.visited_points will be modified as saw is
         self.nsteps=nsteps
+        self.name = name
 
     def test_avoid(self):
         """Test if latest site is already occupied. Return True if so, False if not."""
@@ -363,6 +385,9 @@ class Reptation_walker(Grid_walker):
 
 class Directed_walker(Freely_jointed_chain):
     """Walks in specific direction with specified distribution."""
+    def __init__(self,name='Freely jointed chain with directed walk'):
+        self.name=name
+
     def walk_one_step(self, limited=False):
         current_pos = self.visited_points[-1][:]
         # Get walking direction
@@ -379,8 +404,9 @@ class Directed_walker(Freely_jointed_chain):
 
 class Grid_walker_stepl_variations(Grid_walker, Freely_jointed_chain):
     """Parallell/perpendicular motion with a randomly distributed step length"""
-    def __init__(self,distribution="N"):
+    def __init__(self,distribution="N",name="Grid walker with step length variation"):
         self.distribution = distribution
+        self.name = name
 
     def walk_one_step(self, limited=False):
         if self.distribution == "N":
@@ -390,12 +416,13 @@ class Grid_walker_stepl_variations(Grid_walker, Freely_jointed_chain):
         Grid_walker.walk_one_step(self,limited)
 
     def test_avoid(self):
-        Freely_jointed_chain.test_avoid(self)
+        return Freely_jointed_chain.test_avoid(self)
 
 class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
     """Freely jointed chain with randomly distributed step lengths"""
-    def __init__(self, distribution="N"):
+    def __init__(self, distribution="N",name="Freely jointed chain with step length variations"):
         self.distribution = distribution
+        self.name=name
 
     def walk_one_step(self, limited=False):
         if self.distribution == "N":
@@ -416,8 +443,9 @@ def main():
     # gridwalk.walk_without_avoid(nsteps=100,limited=False)
     # gridwalk.walk_with_self_avoid(nsteps=50,limited=True)
     # gridwalk.plot_the_walk(beads=False)
-    print(gridwalk.success_rate(nsteps=10,limited=True))
-    print(gridwalk.success_rate(nsteps=10,limited=False))
+    # print(gridwalk.success_rate(nsteps=10,limited=True))
+    # print(gridwalk.success_rate(nsteps=10,limited=False))
+    # gridwalk.plot_success_rate_vs_nsteps()
     # gridwalk.hist_quotient_length_etedist(nwalks=1000)
 
     chainwalk = Freely_jointed_chain()
@@ -426,8 +454,9 @@ def main():
     # chainwalk.plot_the_walk(beads=False)
     # chainwalk.walk_with_self_avoid(nsteps=20,limited=True)
     # chainwalk.plot_the_walk(beads=False)
-    print(chainwalk.success_rate(nsteps=10,limited=True))
-    print(chainwalk.success_rate(nsteps=10,limited=False))
+    # print(chainwalk.success_rate(nsteps=10,limited=True))
+    # print(chainwalk.success_rate(nsteps=10,limited=False))
+    # chainwalk.plot_success_rate_vs_nsteps()
     # chainwalk.hist_quotient_length_etedist(nwalks=1000)
     # chainwalk.plot_bead_size_variation()
     # chainwalk.plot_bead_size_variation(success=True)
@@ -443,9 +472,11 @@ def main():
     # grid_walker_stepl_variations.plot_the_walk(beads=True)
     print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=True))
     print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=False))
+    grid_walker_stepl_variations.plot_success_rate_vs_nsteps()
     # grid_walker_stepl_variations.hist_quotient_length_etedist(nwalks=1000)
     # grid_walker_stepl_variations.plot_bead_size_variation()
     # grid_walker_stepl_variations.plot_bead_size_variation(success=True)
+    # grid_walker_stepl_variations.plot_multiple_end_to_end_distances()
 
     chainwalk_stepl_variations = Freely_jointed_chain_stepl_variations(distribution="N") #TODO: Very bad performance
     # chainwalk_stepl_variations.walk_with_self_avoid(nsteps=10)
