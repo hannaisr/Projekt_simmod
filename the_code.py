@@ -3,21 +3,20 @@ import numpy as np
 import matplotlib.pyplot as plt # For 3D plot
 from mpl_toolkits.mplot3d import Axes3D # For 3D plot
 
-
 class Walker():
     """Walked positions are stored in a list"""
     # Initiate list of visited points
     origin = [0,0,0]
     visited_points = [origin]
     length = 0
-    my=10
-    sigma=10
+    my=1
+    sigma=1
 
     # Define step length
     r = my
 
     # Define bead radius, at largest 1/2*r (preferrably smaller than 1/2*r)
-    rho = 0.2
+    rho = 0.4999
 
     # Store last walking direction
     last_direction = 0
@@ -177,6 +176,7 @@ class Walker():
         qs=[] #Quotients bead size/expected value of step length
         rms=[]
         success_rates=[]
+        t = time()
         for rho in range(0,10):
             self.rho=rho/100
             if my==True: #Bead size by expected value
@@ -188,6 +188,10 @@ class Walker():
                 rms.append(np.sqrt(np.mean(np.square(etedist_list))))
             else:#y=Success rate
                 success_rates.append(self.success_rate(nsteps=nsteps))
+                t_new = time()
+                print(t_new-t)
+                t=t_new
+                print(success_rates)
         fig = plt.figure()
         ax = fig.add_subplot(111)
         if my==True:
@@ -246,7 +250,7 @@ class Freely_jointed_chain(Walker):
             # Define direction to walk back the same way
             theta_back = np.pi-self.last_direction[0]
             phi_back = np.pi+self.last_direction[1]
-            # Define angle for resctriction cone - TODO - udate this to work for different bead sizes
+            # Define angle for resctriction cone - TODO - udate this to work for changing bead sizes
             alpha = 2*np.arcsin(self.rho/self.r)
             # Define accepted angles in order to not walk back the same way
             accepted_theta = [theta_back+alpha,2*np.pi+theta_back-alpha]
@@ -384,8 +388,9 @@ class Grid_walker_stepl_variations(Grid_walker, Freely_jointed_chain):
         elif self.distribution == "exp":
             self.r = rnd.expovariate(1/self.my) # Varation in step length
         Grid_walker.walk_one_step(self,limited)
+
     def test_avoid(self):
-        return Freely_jointed_chain.test_avoid(self)
+        Freely_jointed_chain.test_avoid(self)
 
 class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
     """Freely jointed chain with randomly distributed step lengths"""
@@ -411,8 +416,8 @@ def main():
     # gridwalk.walk_without_avoid(nsteps=100,limited=False)
     # gridwalk.walk_with_self_avoid(nsteps=50,limited=True)
     # gridwalk.plot_the_walk(beads=False)
-    # print(gridwalk.success_rate(nsteps=10,limited=True))
-    # print(gridwalk.success_rate(nsteps=10,limited=False))
+    print(gridwalk.success_rate(nsteps=10,limited=True))
+    print(gridwalk.success_rate(nsteps=10,limited=False))
     # gridwalk.hist_quotient_length_etedist(nwalks=1000)
 
     chainwalk = Freely_jointed_chain()
@@ -421,8 +426,8 @@ def main():
     # chainwalk.plot_the_walk(beads=False)
     # chainwalk.walk_with_self_avoid(nsteps=20,limited=True)
     # chainwalk.plot_the_walk(beads=False)
-    # print(chainwalk.success_rate(nsteps=10,limited=True))
-    # print(chainwalk.success_rate(nsteps=10,limited=False))
+    print(chainwalk.success_rate(nsteps=10,limited=True))
+    print(chainwalk.success_rate(nsteps=10,limited=False))
     # chainwalk.hist_quotient_length_etedist(nwalks=1000)
     # chainwalk.plot_bead_size_variation()
     # chainwalk.plot_bead_size_variation(success=True)
@@ -436,8 +441,8 @@ def main():
     # grid_walker_stepl_variations.walk_without_avoid(nsteps=50)
     # grid_walker_stepl_variations.walk_with_self_avoid(nsteps=10,limited=True)
     # grid_walker_stepl_variations.plot_the_walk(beads=True)
-    # print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=True))
-    # print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=False))
+    print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=True))
+    print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=False))
     # grid_walker_stepl_variations.hist_quotient_length_etedist(nwalks=1000)
     # grid_walker_stepl_variations.plot_bead_size_variation()
     # grid_walker_stepl_variations.plot_bead_size_variation(success=True)
@@ -449,7 +454,7 @@ def main():
     # print(chainwalk_stepl_variations.success_rate(nsteps=10,limited=False))
     # chainwalk_stepl_variations.hist_quotient_length_etedist(nwalks=1000)
     # chainwalk_stepl_variations.plot_bead_size_variation(limited=False)
-    # chainwalk_stepl_variations.plot_bead_size_variation(success=True,limited=False,nsteps=10) #Bad performace due to self.r too short too often (immediate self-intersection)
+    # chainwalk_stepl_variations.plot_bead_size_variation(success=True,limited=False,nsteps=50) #Bad performace due to self.r too short too often (immediate self-intersection)
 
     reptationwalk = Reptation_walker(nsteps=10)
     #reptationwalk.walk_with_self_avoid()
@@ -457,4 +462,3 @@ def main():
     #reptationwalk.plot_multiple_end_to_end_distances(nwalks=100)
 
 main()
-
