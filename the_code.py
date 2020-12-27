@@ -52,10 +52,10 @@ class Walker():
                         break
                 # In case of self interception, break attempt immediately
                 if try_again is True:
-                    print('Managed to walk',len(self.visited_points)-2,'steps')
+                    # print('Managed to walk',len(self.visited_points)-2,'steps')
                     self.restart()
                     break
-        print('Managed to walk', len(self.visited_points) - 1, 'steps')
+        # print('Managed to walk', len(self.visited_points) - 1, 'steps')
 
     def walk_with_self_avoid(self,nsteps=100,limited=True):
         """Walk nsteps steps of self-avoiding random walk. Returns the number of walks that failed."""
@@ -122,18 +122,22 @@ class Walker():
         last_point = self.visited_points[-1]
         return np.sqrt((last_point[0]-self.origin[0])**2+(last_point[1]-self.origin[1])**2+(last_point[2]-self.origin[2])**2)
 
-    def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False,limited=True):
+    def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False,limited=True,cheat=False):
         """Returns a list of end-to-end distances and chain lengths for nwalks number of walks of length nsteps"""
         etedist_list = np.zeros(nwalks)
         length_list = np.zeros(nwalks)
         for i in range(nwalks):
             self.restart()
             if avoid is True:
-                self.walk_with_self_avoid(nsteps=nsteps,limited=limited)
+                if cheat is True:
+                    self.walk_with_self_avoid_cheat(nsteps=nsteps,limited=limited)
+                else:
+                    self.walk_with_self_avoid(nsteps=nsteps,limited=limited)
             else:
                 self.walk_without_avoid(nsteps=nsteps)
             etedist_list[i] = self.get_end_to_end_distance()
             length_list[i] = self.length
+            print("Finished",i+1,"walks")
         return etedist_list, length_list
 
     def plot_multiple_end_to_end_distances(self,nwalks=100,avoid=False,limited=True):
@@ -159,24 +163,9 @@ class Walker():
         plt.legend()
         plt.show()
 
-    def plot_success_rate_vs_nsteps(self,limited=True):
-        """Plots success rate to number of steps in walk"""
-        step_numbers = range(10,120,10)
-        # step_numbers = range(1,30,5)
-        success_rates = []
-        for nsteps in step_numbers:
-            success_rates.append(self.success_rate(nsteps,limited))
-            print(success_rates)
-        fig = plt.figure()
-        plt.plot(step_numbers,success_rates)
-        plt.xlabel('Number of steps')
-        plt.ylabel('Success rate')
-        plt.title("Success rate vs number of steps for "+str(self.name))
-        plt.show()
-
-    def hist_quotient_length_etedist(self,nsteps=100,nwalks=10,avoid=False,limited=True):
+    def hist_quotient_length_etedist(self,nsteps=100,nwalks=10,avoid=False,limited=True,cheat=False):
         """Plots the quotient between total chain length and end-to-end distance"""
-        etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited)
+        etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,cheat=cheat)
         quotients = [etedist_list[i]/length_list[i] for i in range(len(length_list))]
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -185,6 +174,22 @@ class Walker():
         ax.set_xlabel("End-to-End distance/length")
         plt.legend()
         plt.show()
+
+    def plot_success_rate_vs_nsteps(self,step_numbers=range(1,25,5),limited=True):
+        """Plots success rate to number of steps in walk"""
+        # step_numbers = range(10,120,10)   # Grid
+        # step_numbers = range(1,25,5)        # Freely jointed
+        success_rates = []
+        for nsteps in step_numbers:
+            success_rates.append(self.success_rate(nsteps,limited))
+            print(success_rates)
+        title = "Success rate vs number of steps for \n"+str(self.name)+", "
+        if limited is True:
+            title += 'limited'
+        else:
+            title += 'not limited'
+        plot(title,'Number of steps','Success rate',step_numbers,success_rates)
+        return step_numbers,success_rates
 
     def plot_bead_size_variation(self,nsteps=100,nwalks=10,my=True,success=False,limited=True):
         """Plots the relationship between quotient bead size/my or sigma of step length and RMS End-to-End distance or success rate in self-avoiding chains"""
@@ -223,8 +228,8 @@ class Walker():
         plt.show()
 
 class Grid_walker(Walker):
-    def __init__(self,name="Grid walker"):
-        self.name = name
+    def __init__(self):
+        self.name = "Grid walker, r="+str(self.r)
 
     def walk_one_step(self, limited=False):
         possible_directions = [-3,-2,-1,1,2,3]
@@ -261,8 +266,8 @@ class Grid_walker(Walker):
         return False
 
 class Freely_jointed_chain(Walker):
-    def __init__(self,name='Freely jointed chain'):
-        self.name=name
+    def __init__(self):
+        self.name = 'Freely jointed chain, r='+str(self.r)
 
     def walk_one_step(self, limited=False):
         current_pos = self.visited_points[-1][:]
@@ -404,9 +409,9 @@ class Directed_walker(Freely_jointed_chain):
 
 class Grid_walker_stepl_variations(Grid_walker, Freely_jointed_chain):
     """Parallell/perpendicular motion with a randomly distributed step length"""
-    def __init__(self,distribution="N",name="Grid walker with step length variation"):
+    def __init__(self,distribution="N"):
         self.distribution = distribution
-        self.name = name
+        self.name = "Grid walker with step length variation, mu="+str(self.my)+", sigma="+str(self.sigma)
 
     def walk_one_step(self, limited=False):
         if self.distribution == "N":
@@ -420,9 +425,9 @@ class Grid_walker_stepl_variations(Grid_walker, Freely_jointed_chain):
 
 class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
     """Freely jointed chain with randomly distributed step lengths"""
-    def __init__(self, distribution="N",name="Freely jointed chain with step length variations"):
+    def __init__(self, distribution="N"):
         self.distribution = distribution
-        self.name=name
+        self.name = "Freely jointed chain with step length variations, mu="+str(self.my)+", sigma="+str(self.sigma)
 
     def walk_one_step(self, limited=False):
         if self.distribution == "N":
@@ -436,6 +441,21 @@ def get_cmap(n, name='hsv'):
     RGB color; the keyword argument name must be a standard mpl colormap name.'''
     return plt.cm.get_cmap(name, n + 1)
 
+
+def plot(title,xlabel,ylabel,xlists,ylists,labels_list=None):
+    """xlists and ylists can be lists of lists if more than one series should be plotted."""
+    plt.figure()
+    plt.title(str(title))
+    if type(xlists[0]) is list:
+        if not len(xlists)==len(ylists)==len(labels_list):
+            raise ValueError    # xlists, ylists and labels_list must be of same length
+        for i in range(len(xlists)):
+            plt.plot(xlists[i],ylists[i],label=str(labels_list[i]))
+    else:
+        plt.plot(xlists,ylists)
+    plt.show()
+
+
 def main():
     gridwalk = Grid_walker()
     # gridwalk.plot_multiple_end_to_end_distances()
@@ -447,6 +467,8 @@ def main():
     # print(gridwalk.success_rate(nsteps=10,limited=False))
     # gridwalk.plot_success_rate_vs_nsteps()
     # gridwalk.hist_quotient_length_etedist(nwalks=1000)
+    # gridwalk.hist_quotient_length_etedist(nsteps=100,nwalks=1000,avoid=True,limited=True)
+    # gridwalk.hist_quotient_length_etedist(nsteps=100,nwalks=1000,avoid=True,limited=True,cheat=True)
 
     chainwalk = Freely_jointed_chain()
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=100)
@@ -456,8 +478,10 @@ def main():
     # chainwalk.plot_the_walk(beads=False)
     # print(chainwalk.success_rate(nsteps=10,limited=True))
     # print(chainwalk.success_rate(nsteps=10,limited=False))
-    # chainwalk.plot_success_rate_vs_nsteps()
-    # chainwalk.hist_quotient_length_etedist(nwalks=1000)
+    # chainwalk.plot_success_rate_vs_nsteps(limited=True)
+    chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,cheat=False)
+    chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False)
+
     # chainwalk.plot_bead_size_variation()
     # chainwalk.plot_bead_size_variation(success=True)
 
@@ -470,9 +494,9 @@ def main():
     # grid_walker_stepl_variations.walk_without_avoid(nsteps=50)
     # grid_walker_stepl_variations.walk_with_self_avoid(nsteps=10,limited=True)
     # grid_walker_stepl_variations.plot_the_walk(beads=True)
-    print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=True))
-    print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=False))
-    grid_walker_stepl_variations.plot_success_rate_vs_nsteps()
+    # print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=True))
+    # print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=False))
+    # grid_walker_stepl_variations.plot_success_rate_vs_nsteps()
     # grid_walker_stepl_variations.hist_quotient_length_etedist(nwalks=1000)
     # grid_walker_stepl_variations.plot_bead_size_variation()
     # grid_walker_stepl_variations.plot_bead_size_variation(success=True)
