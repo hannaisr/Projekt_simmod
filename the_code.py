@@ -31,7 +31,7 @@ class Walker():
         for i in range(nsteps):
             self.walk_one_step(limited)
 
-    def walk_with_self_avoid_cheat(self,nsteps=100,limited=True):
+    def walk_with_self_avoid_forced(self,nsteps=100,limited=True):
         """Walk nsteps steps of self-avoiding random walk, redoing each step until it is successful or it has failed tries_per_step times."""
 
         tries_per_step = 100 # Maximum number of times to try again if the step is unacceptable
@@ -122,15 +122,15 @@ class Walker():
         last_point = self.visited_points[-1]
         return np.sqrt((last_point[0]-self.origin[0])**2+(last_point[1]-self.origin[1])**2+(last_point[2]-self.origin[2])**2)
 
-    def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False,limited=True,cheat=False):
+    def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False,limited=True,forced=False):
         """Returns a list of end-to-end distances and chain lengths for nwalks number of walks of length nsteps"""
         etedist_list = np.zeros(nwalks)
         length_list = np.zeros(nwalks)
         for i in range(nwalks):
             self.restart()
             if avoid is True:
-                if cheat is True:
-                    self.walk_with_self_avoid_cheat(nsteps=nsteps,limited=limited)
+                if forced is True:
+                    self.walk_with_self_avoid_forced(nsteps=nsteps,limited=limited)
                 else:
                     self.walk_with_self_avoid(nsteps=nsteps,limited=limited)
             else:
@@ -163,9 +163,9 @@ class Walker():
         plt.legend()
         plt.show()
 
-    def hist_quotient_length_etedist(self,nsteps=100,nwalks=10,avoid=False,limited=True,cheat=False):
+    def hist_quotient_length_etedist(self,nsteps=100,nwalks=10,avoid=False,limited=True,forced=False):
         """Plots the quotient between total chain length and end-to-end distance"""
-        etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,cheat=cheat)
+        etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,forced=forced)
         quotients = [etedist_list[i]/length_list[i] for i in range(len(length_list))]
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -196,7 +196,6 @@ class Walker():
         qs=[] #Quotients bead size/expected value of step length
         rms=[]
         success_rates=[]
-        t = time()
         for rho in range(0,10):
             self.rho=rho/100
             if my==True: #Bead size by expected value
@@ -208,10 +207,6 @@ class Walker():
                 rms.append(np.sqrt(np.mean(np.square(etedist_list))))
             else:#y=Success rate
                 success_rates.append(self.success_rate(nsteps=nsteps))
-                t_new = time()
-                print(t_new-t)
-                t=t_new
-                print(success_rates)
         fig = plt.figure()
         ax = fig.add_subplot(111)
         if my==True:
@@ -272,21 +267,15 @@ class Freely_jointed_chain(Walker):
     def walk_one_step(self, limited=False):
         current_pos = self.visited_points[-1][:]
         # Get walking direction
+        theta = rnd.uniform(0,np.pi)
+        phi = rnd.uniform(0,2*np.pi)
         if limited == True and self.last_direction != 0:
             # Define direction to walk back the same way
             theta_back = np.pi-self.last_direction[0]
             phi_back = np.pi+self.last_direction[1]
-            # Define angle for resctriction cone - TODO - udate this to work for changing bead sizes
-            alpha = 2*np.arcsin(self.rho/self.r)
-            # Define accepted angles in order to not walk back the same way
-            accepted_theta = [theta_back+alpha,2*np.pi+theta_back-alpha]
-            accepted_phi =  [phi_back+alpha,2*np.pi+phi_back-alpha]
-            # Get new direction
-            theta = rnd.uniform(accepted_theta[0],accepted_theta[1])
-            phi = rnd.uniform(accepted_phi[0],accepted_phi[1])
-        else:
-            theta = rnd.uniform(0,np.pi)
-            phi = rnd.uniform(0,2*np.pi)
+            while (self.r*np.sin(theta)*np.cos(phi)-self.r*np.sin(theta_back)*np.cos(phi_back))**2+(self.r*np.sin(theta)*np.sin(phi)-self.r*np.sin(theta_back)*np.sin(phi_back))**2+(self.r*np.cos(theta)-self.r*np.cos(theta_back))**2 < self.rho**2:
+                theta = rnd.uniform(0,np.pi)
+                phi = rnd.uniform(0,2*np.pi)
         self.last_direction = [theta,phi]
         # Update the coordinates
         current_pos[0] += self.r*np.sin(theta)*np.cos(phi)  # x
@@ -467,8 +456,10 @@ def main():
     # print(gridwalk.success_rate(nsteps=10,limited=False))
     # gridwalk.plot_success_rate_vs_nsteps()
     # gridwalk.hist_quotient_length_etedist(nwalks=1000)
-    # gridwalk.hist_quotient_length_etedist(nsteps=100,nwalks=1000,avoid=True,limited=True)
-    # gridwalk.hist_quotient_length_etedist(nsteps=100,nwalks=1000,avoid=True,limited=True,cheat=True)
+    # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False,forced=True)
+    # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=True)
+    # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=False)
+    # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False)
 
     chainwalk = Freely_jointed_chain()
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=100)
@@ -478,8 +469,10 @@ def main():
     # chainwalk.plot_the_walk(beads=False)
     # print(chainwalk.success_rate(nsteps=10,limited=True))
     # print(chainwalk.success_rate(nsteps=10,limited=False))
-    # chainwalk.plot_success_rate_vs_nsteps(limited=True)
-    chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,cheat=False)
+    # # chainwalk.plot_success_rate_vs_nsteps(limited=True)
+    chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False,forced=True)
+    chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=True)
+    chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=False)
     chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False)
 
     # chainwalk.plot_bead_size_variation()
