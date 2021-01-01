@@ -6,20 +6,21 @@ from mpl_toolkits.mplot3d import Axes3D # For 3D plot
 class Walker():
     """Walked positions are stored in a list"""
     # Initiate list of visited points
-    origin = [0,0,0]
+    rho0 = 0.499 # size of first bead, the very least 1/2 step length.
+    # Modify generate_rho() to manage method for generating the sizes of the other beads
+    origin = [0,0,0,rho0] # position and bead size are stored in list
     visited_points = [origin]
     length = 0
-    my=1
-    sigma=1
+    my=5
+    sigma=0.5
 
     # Define step length
     r = my
 
-    # Define bead radius, at largest 1/2*r (preferrably smaller than 1/2*r)
-    rho = 0.4999
-
     # Store last walking direction
     last_direction = 0
+
+    variate_rho=False
 
     def walk_one_step(self, limited=False):
         """Implemented by child class"""
@@ -73,12 +74,18 @@ class Walker():
                 try_again=self.test_avoid()
                 # In case of self interception, break attempt immediately
                 if try_again is True:
-                    # print('Managed to walk',len(self.visited_points)-2,'steps')
+                    print('Managed to walk',len(self.visited_points)-2,'steps')
                     nfails += 1
                     self.restart()
                     break
         # print('Managed to walk', len(self.visited_points) - 1, 'steps')
         return nfails
+
+    def generate_rho(self):
+        if self.variate_rho is True:
+            return(self.r-self.visited_points[-1][3]-0.0000001) # Current and last bead radiuses alwys cover the whole length of the step
+        else:
+            return(self.rho0)
 
     def success_rate(self,nsteps=20,limited=True):
         """Calculates success rate from nsuccessful_walks number of successful walks."""
@@ -104,6 +111,7 @@ class Walker():
         x = [i[0] for i in self.visited_points]
         y = [i[1] for i in self.visited_points]
         z = [i[2] for i in self.visited_points]
+        rho = [i[3] for i in self.visited_points]
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         ax.plot(x,y,z)
@@ -111,9 +119,9 @@ class Walker():
             cmap = get_cmap(len(x))
             for i in range(len(x)):
                 phi, theta = np.mgrid[0:2 * np.pi:200j, 0:np.pi:100j]
-                x_sphere = x[i] + self.rho * np.cos(phi) * np.sin(theta)
-                y_sphere = y[i] + self.rho * np.sin(phi) * np.sin(theta)
-                z_sphere = z[i] + self.rho * np.cos(theta)
+                x_sphere = x[i] + rho[i] * np.cos(phi) * np.sin(theta)
+                y_sphere = y[i] + rho[i] * np.sin(phi) * np.sin(theta)
+                z_sphere = z[i] + rho[i] * np.cos(theta)
                 ax.plot_wireframe(x_sphere, y_sphere, z_sphere, color=cmap(i))
         plt.show()
 
@@ -197,11 +205,11 @@ class Walker():
         rms=[]
         success_rates=[]
         for rho in range(0,10):
-            self.rho=rho/100
+            self.rho0=rho/100
             if my==True: #Bead size by expected value
-                qs.append(2*self.rho/self.my)
+                qs.append(2*self.rho0/self.my)
             else: #Bead size by standard deviation
-                qs.append(2*self.rho/self.sigma)
+                qs.append(2*self.rho0/self.sigma)
             if success==False:#y=RMS
                 etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps, nwalks=nwalks, avoid=True, limited=limited)
                 rms.append(np.sqrt(np.mean(np.square(etedist_list))))
@@ -229,6 +237,7 @@ class Grid_walker(Walker):
     def walk_one_step(self, limited=False):
         possible_directions = [-3,-2,-1,1,2,3]
         current_pos = self.visited_points[-1][:]
+        current_pos[3] = self.generate_rho()
         # Get walking direction
         direction = rnd.choice(possible_directions)
         if limited == True:
@@ -254,9 +263,11 @@ class Grid_walker(Walker):
 
     def test_avoid(self):
         """Test if latest site is already occupied. Return True if so, False if not."""
-        if self.r < 2*self.rho:
+        # if self.r < 2*self.rho:
+        #     return True
+        if self.visited_points[0][:3] == self.visited_points[-1][:3]:
             return True
-        if any(t == self.visited_points[-1] for t in self.visited_points[:-1]):
+        elif any(t == self.visited_points[-1][:3] for t in [i[:3] for i in self. visited_points[:-1]]):
             return True
         return False
 
@@ -266,14 +277,15 @@ class Freely_jointed_chain(Walker):
 
     def walk_one_step(self, limited=False):
         current_pos = self.visited_points[-1][:]
-        # Get walking direction
+        # Get walking direction and bead size
         theta = rnd.uniform(0,np.pi)
         phi = rnd.uniform(0,2*np.pi)
+        rho = self.generate_rho()
         if limited == True and self.last_direction != 0:
             # Define direction to walk back the same way
             theta_back = np.pi-self.last_direction[0]
             phi_back = np.pi+self.last_direction[1]
-            while (self.r*np.sin(theta)*np.cos(phi)-self.r*np.sin(theta_back)*np.cos(phi_back))**2+(self.r*np.sin(theta)*np.sin(phi)-self.r*np.sin(theta_back)*np.sin(phi_back))**2+(self.r*np.cos(theta)-self.r*np.cos(theta_back))**2 < self.rho**2:
+            while (self.r*np.sin(theta)*np.cos(phi)-self.r*np.sin(theta_back)*np.cos(phi_back))**2+(self.r*np.sin(theta)*np.sin(phi)-self.r*np.sin(theta_back)*np.sin(phi_back))**2+(self.r*np.cos(theta)-self.r*np.cos(theta_back))**2 < (current_pos[3]+rho)**2:
                 theta = rnd.uniform(0,np.pi)
                 phi = rnd.uniform(0,2*np.pi)
         self.last_direction = [theta,phi]
@@ -281,24 +293,28 @@ class Freely_jointed_chain(Walker):
         current_pos[0] += self.r*np.sin(theta)*np.cos(phi)  # x
         current_pos[1] += self.r*np.sin(theta)*np.sin(phi)  # y
         current_pos[2] += self.r*np.cos(theta)              # z
+        current_pos[3] = rho
         # Update list of visited points
         self.visited_points.append(current_pos)
         self.length += self.r
 
     def test_avoid(self):
         """Test if latest site is already occupied - continuous case"""
+        cp = self.visited_points[-1]    # Current position
         #The distance between successive sphere centres is self.r. Interception between any two spheres occurs if their centres are less apart than their diameter
-        if self.r < 2*self.rho:
-            return True
+        # if self.r < 2*self.rho:
+        #     return True
         for point in self.visited_points[:-1]:
-            r_centres = np.sqrt((point[0] - self.visited_points[-1][0])**2 + (point[1] - self.visited_points[-1][1])**2 + (point[2] - self.visited_points[-1][2])**2)
-            if r_centres < 2*self.rho:
+            r_centres = np.sqrt((point[0] - cp[0])**2 + (point[1] - cp[1])**2 + (point[2] - cp[2])**2)
+            if r_centres < point[3]+cp[3]:
                 # Self-intercept - needs to restart the process
                 return True
         return False
         # TODO Implement method for avoiding previous _paths_, not just previous positions.
 
 class Reptation_walker(Grid_walker):
+    origin = [0,0,0]
+
     """Reptation algorithm to generate SAWs. Algoritm on hiskp.uni-bonn... pg. 4"""
     def __init__(self,nsteps=100,name='Reptation walker'):
         # Generate a basis self-avoiding walk
@@ -310,9 +326,9 @@ class Reptation_walker(Grid_walker):
 
     def test_avoid(self):
         """Test if latest site is already occupied. Return True if so, False if not."""
-        if self.visited_points[0] == self.visited_points[-1]:
+        if self.visited_points[0][:3] == self.visited_points[-1][:3]:
             return True
-        elif any(t == self.visited_points[-1] or t == self.visited_points[0] for t in self.visited_points[1:-1]):
+        elif any(t == self.visited_points[-1][:3] or t == self.visited_points[0][:3] for t in [i[:3] for i in self.visited_points[1:-1]]):
             return True
         return False
 
@@ -435,11 +451,13 @@ def plot(title,xlabel,ylabel,xlists,ylists,labels_list=None):
     """xlists and ylists can be lists of lists if more than one series should be plotted."""
     plt.figure()
     plt.title(str(title))
+    plt.xlabel(str(xlabel),fontsize=20)
+    plt.ylabel(str(ylabel),fontsize=20)
     if type(xlists[0]) is list:
         if not len(xlists)==len(ylists)==len(labels_list):
             raise ValueError    # xlists, ylists and labels_list must be of same length
         for i in range(len(xlists)):
-            plt.plot(xlists[i],ylists[i],label=str(labels_list[i]))
+            plt.plot(xlists[i],ylists[i],label=str(labels_list[i]),fontsize=16)
     else:
         plt.plot(xlists,ylists)
     plt.show()
@@ -470,10 +488,10 @@ def main():
     # print(chainwalk.success_rate(nsteps=10,limited=True))
     # print(chainwalk.success_rate(nsteps=10,limited=False))
     # # chainwalk.plot_success_rate_vs_nsteps(limited=True)
-    chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False,forced=True)
-    chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=True)
-    chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=False)
-    chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False)
+    # chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False,forced=True)
+    # chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=True)
+    # chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=False)
+    # chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False)
 
     # chainwalk.plot_bead_size_variation()
     # chainwalk.plot_bead_size_variation(success=True)
@@ -485,8 +503,9 @@ def main():
 
     grid_walker_stepl_variations = Grid_walker_stepl_variations()
     # grid_walker_stepl_variations.walk_without_avoid(nsteps=50)
-    # grid_walker_stepl_variations.walk_with_self_avoid(nsteps=10,limited=True)
-    # grid_walker_stepl_variations.plot_the_walk(beads=True)
+    grid_walker_stepl_variations.variate_rho = True
+    grid_walker_stepl_variations.walk_with_self_avoid(nsteps=20,limited=True)
+    grid_walker_stepl_variations.plot_the_walk(beads=True)
     # print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=True))
     # print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=False))
     # grid_walker_stepl_variations.plot_success_rate_vs_nsteps()
@@ -496,8 +515,9 @@ def main():
     # grid_walker_stepl_variations.plot_multiple_end_to_end_distances()
 
     chainwalk_stepl_variations = Freely_jointed_chain_stepl_variations(distribution="N") #TODO: Very bad performance
-    # chainwalk_stepl_variations.walk_with_self_avoid(nsteps=10)
-    # chainwalk_stepl_variations.plot_the_walk(beads=True)
+    chainwalk_stepl_variations.variate_rho = True
+    chainwalk_stepl_variations.walk_with_self_avoid(nsteps=20, limited=True)
+    chainwalk_stepl_variations.plot_the_walk(beads=True)
     # print(chainwalk_stepl_variations.success_rate(nsteps=10,limited=True))
     # print(chainwalk_stepl_variations.success_rate(nsteps=10,limited=False))
     # chainwalk_stepl_variations.hist_quotient_length_etedist(nwalks=1000)
