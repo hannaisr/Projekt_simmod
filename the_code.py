@@ -199,7 +199,14 @@ class Walker():
             mu_list.append(mu)
             sigma_list.append(sigma)
             print(nsteps,"nsteps finished")
-        title = "Normal distribution parameters vs mean chain length\n "+str(self.name)+", "+str(nwalks)+" walks per chain length"
+        if limited:
+            title = "Normal distribution parameters vs mean chain length\n "+str(self.name)+", "+str(nwalks)+" walks per chain length, limited"
+        else:
+            title = "Normal distribution parameters vs mean chain length\n "+str(self.name)+", "+str(nwalks)+" walks per chain length, not limited"
+        if avoid:
+            title += ",\n self avoiding"
+        else:
+            title += ",\n not self avoiding"
         labels = ["mu","sigma"]
         plot2D(title,"Chain length",None,[length_list,length_list],[mu_list,sigma_list],labels)
         print("List of mus:",mu_list,"\n List of sigmas:",sigma_list)
