@@ -2,6 +2,7 @@ import random as rnd
 import numpy as np
 import matplotlib.pyplot as plt # For 3D plot
 from mpl_toolkits.mplot3d import Axes3D # For 3D plot
+from scipy.stats import norm # histogram fitting
 
 class Walker():
     """Walked positions are stored in a list"""
@@ -105,6 +106,7 @@ class Walker():
         self.visited_points = [self.origin]
         self.last_direction = 0
         self.length = 0
+        self.r = self.my
 
     def plot_the_walk(self,beads=False):
         """Plots the walk in 3D."""
@@ -183,6 +185,25 @@ class Walker():
         plt.legend()
         plt.show()
 
+    def plot_etedist_normal(self,nwalks=100,avoid=False,limited=True,forced=False):
+        """Plots fitted mu and sigma for end-to-end distance vs length of chain."""
+        etedist_lists = []
+        nsteps_list = np.arange(10,60,10)
+        length_list = list(nsteps_list*self.my)
+        mu_list = []
+        sigma_list = []
+        # Get end-to-end distances
+        for nsteps in nsteps_list:
+            etedist_list, _ = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,forced=forced)
+            [mu,sigma] = norm.fit(etedist_list)
+            mu_list.append(mu)
+            sigma_list.append(sigma)
+            print(nsteps,"nsteps finished")
+        title = "Normal distribution parameters vs mean chain length\n "+str(self.name)+", "+str(nwalks)+" walks per chain length"
+        labels = ["mu","sigma"]
+        plot2D(title,"Chain length",None,[length_list,length_list],[mu_list,sigma_list],labels)
+        print("List of mus:",mu_list,"\n List of sigmas:",sigma_list)
+
     def plot_success_rate_vs_nsteps(self,step_numbers=range(1,25,5),limited=True):
         """Plots success rate to number of steps in walk"""
         # step_numbers = range(10,120,10)   # Grid
@@ -196,7 +217,7 @@ class Walker():
             title += 'limited'
         else:
             title += 'not limited'
-        plot(title,'Number of steps','Success rate',step_numbers,success_rates)
+        plot2D(title,'Number of steps','Success rate',step_numbers,success_rates)
         return step_numbers,success_rates
 
     def plot_bead_size_variation(self,nsteps=100,nwalks=10,my=True,success=False,limited=True):
@@ -447,19 +468,22 @@ def get_cmap(n, name='hsv'):
     return plt.cm.get_cmap(name, n + 1)
 
 
-def plot(title,xlabel,ylabel,xlists,ylists,labels_list=None):
+def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None):
     """xlists and ylists can be lists of lists if more than one series should be plotted."""
+    print("xlists:",xlists)
+    print("ylists:",ylists)
     plt.figure()
     plt.title(str(title))
-    plt.xlabel(str(xlabel),fontsize=20)
-    plt.ylabel(str(ylabel),fontsize=20)
+    plt.xlabel(xlabel)#,fontsize=16)
+    plt.ylabel(ylabel)#,fontsize=16)
     if type(xlists[0]) is list:
-        if not len(xlists)==len(ylists)==len(labels_list):
-            raise ValueError    # xlists, ylists and labels_list must be of same length
+        # if not len(xlists)==len(ylists)==len(labels_list):
+        #     raise ValueError    # xlists, ylists and labels_list must be of same length
         for i in range(len(xlists)):
-            plt.plot(xlists[i],ylists[i],label=str(labels_list[i]),fontsize=16)
+            plt.plot(xlists[i],ylists[i],label=labels_list[i])
     else:
         plt.plot(xlists,ylists)
+    plt.legend()
     plt.show()
 
 
@@ -478,6 +502,8 @@ def main():
     # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=True)
     # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=False)
     # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False)
+    gridwalk.plot_etedist_normal()
+    gridwalk.plot_etedist_normal(avoid=True)
 
     chainwalk = Freely_jointed_chain()
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=100)
@@ -503,9 +529,9 @@ def main():
 
     grid_walker_stepl_variations = Grid_walker_stepl_variations()
     # grid_walker_stepl_variations.walk_without_avoid(nsteps=50)
-    grid_walker_stepl_variations.variate_rho = True
-    grid_walker_stepl_variations.walk_with_self_avoid(nsteps=20,limited=True)
-    grid_walker_stepl_variations.plot_the_walk(beads=True)
+    # grid_walker_stepl_variations.variate_rho = True
+    # grid_walker_stepl_variations.walk_with_self_avoid(nsteps=20,limited=True)
+    # grid_walker_stepl_variations.plot_the_walk(beads=True)
     # print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=True))
     # print(grid_walker_stepl_variations.success_rate(nsteps=10,limited=False))
     # grid_walker_stepl_variations.plot_success_rate_vs_nsteps()
@@ -515,9 +541,9 @@ def main():
     # grid_walker_stepl_variations.plot_multiple_end_to_end_distances()
 
     chainwalk_stepl_variations = Freely_jointed_chain_stepl_variations(distribution="N") #TODO: Very bad performance
-    chainwalk_stepl_variations.variate_rho = True
-    chainwalk_stepl_variations.walk_with_self_avoid(nsteps=20, limited=True)
-    chainwalk_stepl_variations.plot_the_walk(beads=True)
+    # chainwalk_stepl_variations.variate_rho = True
+    # chainwalk_stepl_variations.walk_with_self_avoid(nsteps=20, limited=True)
+    # chainwalk_stepl_variations.plot_the_walk(beads=True)
     # print(chainwalk_stepl_variations.success_rate(nsteps=10,limited=True))
     # print(chainwalk_stepl_variations.success_rate(nsteps=10,limited=False))
     # chainwalk_stepl_variations.hist_quotient_length_etedist(nwalks=1000)
