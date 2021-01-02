@@ -214,6 +214,17 @@ class Walker():
         print("List of mus:",mu_list,"\n List of sigmas:",sigma_list)
         return mu_list, sigma_list, length_list
 
+    def plot_etedist_parameters_multiple_versions(self):
+        """Plots end-to-end distance mu and sigma for different methods of random walk"""
+        mu1,sigma1,lenlist1 = self.plot_etedist_normal(limited=False)
+        mu3,sigma3,lenlist3 = self.plot_etedist_normal(avoid=True,limited=True)
+        mu4,sigma4,lenlist4 = self.plot_etedist_normal(limited=False,forced=True,avoid=True)
+        mu2,sigma2,lenlist2 = self.plot_etedist_normal(limited=False,avoid=True,forced=False)
+        x = range(0,30,1)
+        plot2D("End-to-end distance mu vs chain lenght\n for "+str(self.name),"Chain length", "End-to-end distance mu", [lenlist1,lenlist2,lenlist3,lenlist4],[mu1,mu2,mu3,mu4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"])
+        plot2D("End-to-end distance sigma vs chain lenght\n for "+str(self.name),"Chain length", "End-to-end distance sigma", [lenlist1,lenlist2,lenlist3,lenlist4],[sigma1,sigma2,sigma3,sigma4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"])
+        plt.show()
+
     def plot_success_rate_vs_nsteps(self,step_numbers=range(1,25,5),limited=True):
         """Plots success rate to number of steps in walk"""
         # step_numbers = range(10,120,10)   # Grid
@@ -512,14 +523,7 @@ def main():
     # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=True)
     # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=False)
     # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False)
-    mu1,sigma1,lenlist1 = gridwalk.plot_etedist_normal(limited=False)
-    mu3,sigma3,lenlist3 = gridwalk.plot_etedist_normal(avoid=True,limited=True)
-    mu4,sigma4,lenlist4 = gridwalk.plot_etedist_normal(limited=False,forced=True,avoid=True)
-    mu2,sigma2,lenlist2 = gridwalk.plot_etedist_normal(limited=False,avoid=True,forced=False)
-    x = range(0,30,1)
-    plot2D("End-to-end distance mu vs chain lenght\n for grid walk","Chain length", "End-to-end distance mu", [lenlist1,lenlist2,lenlist3,lenlist4],[mu1,mu2,mu3,mu4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"])
-    plot2D("End-to-end distance sigma vs chain lenght\n for grid walk","Chain length", "End-to-end distance sigma", [lenlist1,lenlist2,lenlist3,lenlist4],[sigma1,sigma2,sigma3,sigma4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"])
-    plt.show()
+
 
     chainwalk = Freely_jointed_chain()
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=100)
@@ -534,6 +538,7 @@ def main():
     # chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=True)
     # chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=False)
     # chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False)
+    # chainwalk.plot_etedist_parameters_multiple_versions()
 
     # chainwalk.plot_bead_size_variation()
     # chainwalk.plot_bead_size_variation(success=True)
@@ -555,6 +560,7 @@ def main():
     # grid_walker_stepl_variations.plot_bead_size_variation()
     # grid_walker_stepl_variations.plot_bead_size_variation(success=True)
     # grid_walker_stepl_variations.plot_multiple_end_to_end_distances()
+    # grid_walker_stepl_variations.plot_etedist_parameters_multiple_versions()
 
     chainwalk_stepl_variations = Freely_jointed_chain_stepl_variations(distribution="N") #TODO: Very bad performance
     # chainwalk_stepl_variations.variate_rho = True
@@ -565,6 +571,7 @@ def main():
     # chainwalk_stepl_variations.hist_quotient_length_etedist(nwalks=1000)
     # chainwalk_stepl_variations.plot_bead_size_variation(limited=False)
     # chainwalk_stepl_variations.plot_bead_size_variation(success=True,limited=False,nsteps=50) #Bad performace due to self.r too short too often (immediate self-intersection)
+    chainwalk_stepl_variations.plot_etedist_parameters_multiple_versions()
 
     reptationwalk = Reptation_walker(nsteps=10)
     #reptationwalk.walk_with_self_avoid()
