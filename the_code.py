@@ -75,7 +75,7 @@ class Walker():
                 try_again=self.test_avoid()
                 # In case of self interception, break attempt immediately
                 if try_again is True:
-                    print('Managed to walk',len(self.visited_points)-2,'steps')
+                    # print('Managed to walk',len(self.visited_points)-2,'steps')
                     nfails += 1
                     self.restart()
                     break
@@ -147,7 +147,7 @@ class Walker():
                 self.walk_without_avoid(nsteps=nsteps)
             etedist_list[i] = self.get_end_to_end_distance()
             length_list[i] = self.length
-            print("Finished",i+1,"walks")
+            # print("Finished",i+1,"walks")
         return etedist_list, length_list
 
     def plot_multiple_end_to_end_distances(self,nwalks=100,avoid=False,limited=True):
@@ -185,10 +185,10 @@ class Walker():
         plt.legend()
         plt.show()
 
-    def plot_etedist_normal(self,nwalks=100,avoid=False,limited=True,forced=False):
+    def plot_etedist_normal(self,nwalks=1000,avoid=False,limited=False,forced=False):
         """Plots fitted mu and sigma for end-to-end distance vs length of chain."""
         etedist_lists = []
-        nsteps_list = np.arange(10,60,10)
+        nsteps_list = np.arange(0,30,1)
         length_list = list(nsteps_list*self.my)
         mu_list = []
         sigma_list = []
@@ -200,16 +200,19 @@ class Walker():
             sigma_list.append(sigma)
             print(nsteps,"nsteps finished")
         if limited:
-            title = "Normal distribution parameters vs mean chain length\n "+str(self.name)+", "+str(nwalks)+" walks per chain length, limited"
+            title = "Normal distribution parameters vs mean chain length\n "+str(self.name)+", "+str(nwalks)+" walks per chain length, limited,\n "
         else:
-            title = "Normal distribution parameters vs mean chain length\n "+str(self.name)+", "+str(nwalks)+" walks per chain length, not limited"
+            title = "Normal distribution parameters vs mean chain length\n "+str(self.name)+", "+str(nwalks)+" walks per chain length, not limited,\n "
+        if forced is True:
+            title += "forced "
         if avoid:
-            title += ",\n self avoiding"
+            title += "self avoiding"
         else:
-            title += ",\n not self avoiding"
+            title += "not self avoiding"
         labels = ["mu","sigma"]
         plot2D(title,"Chain length",None,[length_list,length_list],[mu_list,sigma_list],labels)
         print("List of mus:",mu_list,"\n List of sigmas:",sigma_list)
+        return mu_list, sigma_list, length_list
 
     def plot_success_rate_vs_nsteps(self,step_numbers=range(1,25,5),limited=True):
         """Plots success rate to number of steps in walk"""
@@ -491,7 +494,7 @@ def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None):
     else:
         plt.plot(xlists,ylists)
     plt.legend()
-    plt.show()
+    # plt.show()
 
 
 def main():
@@ -509,8 +512,14 @@ def main():
     # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=True)
     # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=False)
     # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False)
-    gridwalk.plot_etedist_normal()
-    gridwalk.plot_etedist_normal(avoid=True)
+    mu1,sigma1,lenlist1 = gridwalk.plot_etedist_normal(limited=False)
+    mu3,sigma3,lenlist3 = gridwalk.plot_etedist_normal(avoid=True,limited=True)
+    mu4,sigma4,lenlist4 = gridwalk.plot_etedist_normal(limited=False,forced=True,avoid=True)
+    mu2,sigma2,lenlist2 = gridwalk.plot_etedist_normal(limited=False,avoid=True,forced=False)
+    x = range(0,30,1)
+    plot2D("End-to-end distance mu vs chain lenght\n for grid walk","Chain length", "End-to-end distance mu", [lenlist1,lenlist2,lenlist3,lenlist4],[mu1,mu2,mu3,mu4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"])
+    plot2D("End-to-end distance sigma vs chain lenght\n for grid walk","Chain length", "End-to-end distance sigma", [lenlist1,lenlist2,lenlist3,lenlist4],[sigma1,sigma2,sigma3,sigma4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"])
+    plt.show()
 
     chainwalk = Freely_jointed_chain()
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=100)
