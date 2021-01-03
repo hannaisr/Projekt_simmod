@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt # For 3D plot
 from mpl_toolkits.mplot3d import Axes3D # For 3D plot
 from scipy.stats import norm # histogram fitting
+from scipy import stats
 
 class Walker():
     """Walked positions are stored in a list"""
@@ -239,7 +240,7 @@ class Walker():
     def plot_success_rate_vs_nsteps(self,step_numbers=range(1,25,5),limited=True):
         """Plots success rate to number of steps in walk"""
         #step_numbers = range(10,120,10)   # Grid
-        step_numbers = range(1,50,5)        # Freely jointed
+        step_numbers = range(1,25,5)        # Freely jointed
         success_rates = []
         for nsteps in step_numbers:
             success_rates.append(self.success_rate(nsteps,limited))
@@ -298,6 +299,29 @@ class Walker():
             ax.set_ylabel("Success rate")
             plt.suptitle("Success rate vs bead size for " + str(nsteps) + "-steps \n"+self.name+ext)
         plt.legend()
+        plt.show()
+
+    def normplot(self,nsteps=100,nwalks=10,avoid=False,limited=True,forced=False):
+        etedistlist,l = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,forced=forced)
+
+        # Calculate quantiles and least-square-fit curve
+        (quantiles, values), (slope, intercept, r) = stats.probplot(etedistlist, dist='norm')
+
+        # plot results
+        plt.plot(values, quantiles, 'ob')
+        plt.plot(quantiles * slope + intercept, quantiles, 'r')
+
+        # define ticks
+        ticks_perc = [1, 5, 10, 20, 50, 80, 90, 95, 99]
+
+        # transfrom them from precentile to cumulative density
+        ticks_quan = [stats.norm.ppf(i / 100.) for i in ticks_perc]
+
+        # assign new ticks
+        plt.yticks(ticks_quan, ticks_perc)
+
+        # show plot
+        plt.grid()
         plt.show()
 
 class Grid_walker(Walker):
@@ -569,6 +593,11 @@ def main():
     # gridwalk.plot_multiple_end_to_end_distances(nwalks=50, avoid=True,limited=False,forced=False)
     # gridwalk.plot_multiple_end_to_end_distances(avoid=True,limited=True,forced=False,nwalks=50)
     # gridwalk.plot_multiple_end_to_end_distances(avoid=True, limited=True, forced=True, nwalks=50)
+    # gridwalk.plot_success_rate_vs_nsteps(limited=False)
+    # gridwalk.plot_success_rate_vs_nsteps(limited=True)
+    gridwalk.normplot(nwalks=100,avoid=True)
+
+
 
     # print(gridwalk.get_multiple_end_to_end_distances(nwalks=10,avoid=False))
     # gridwalk.walk_without_avoid(nsteps=100,limited=False)
@@ -595,7 +624,10 @@ def main():
     #chainwalk.plot_bead_size_variation(limited=True,forced=True,success=True)
     #chainwalk.plot_bead_size_variation(limited=True,forced=False,success=True)
     #chainwalk.plot_bead_size_variation(limited=False,forced=False,success=True)
+    #chainwalk.plot_success_rate_vs_nsteps(limited=False)
+    #chainwalk.plot_success_rate_vs_nsteps(limited=True)
 
+    #chainwalk.normplot(nwalks=1000)
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=2,avoid=True)
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=50,avoid=True,limited=True)
     # chainwalk.walk_without_avoid(nsteps=1000,limited=False)
@@ -630,6 +662,8 @@ def main():
     # grid_walker_stepl_variations.plot_bead_size_variation(success=True)
     # grid_walker_stepl_variations.plot_multiple_end_to_end_distances()
     # grid_walker_stepl_variations.plot_etedist_parameters_multiple_versions()
+    #grid_walker_stepl_variations.normplot(nwalks=1000)
+
 
     chainwalk_stepl_variations = Freely_jointed_chain_stepl_variations(distribution="N") #TODO: Very bad performance
     #In Pdf:
@@ -647,6 +681,7 @@ def main():
     # chainwalk_stepl_variations.plot_bead_size_variation(success=True,limited=False,nsteps=50) #Bad performace due to self.r too short too often (immediate self-intersection)
     # chainwalk_stepl_variations.plot_etedist_parameters_multiple_versions()
     # chainwalk.plot_bead_size_variation(limited=True,forced=True,success=True)
+    chainwalk_stepl_variations.normplot(nwalks=1000)
 
 
     reptationwalk = Reptation_walker(nsteps=10)
