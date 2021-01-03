@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt # For 3D plot
 from mpl_toolkits.mplot3d import Axes3D # For 3D plot
 from scipy.stats import norm # histogram fitting
 from scipy import stats
+import time
 
 class Walker():
     """Walked positions are stored in a list"""
@@ -151,13 +152,14 @@ class Walker():
             # print("Finished",i+1,"walks")
         return etedist_list, length_list
 
-    def plot_multiple_end_to_end_distances(self,nwalks=10,avoid=False,limited=False,forced=False):
+    def plot_multiple_end_to_end_distances(self,nwalks=10,avoid=False,limited=False,forced=False,holdon=False):
         """Plots end-to-end distance RMS, RMS fluctuation and standard error estimate for nwalks walks by chain length"""
         rms=[]
         rms_fluc = []
         std_err = []
-        step_numbers = range(10,50,10)
+        step_numbers = range(5,14,1)
         for nsteps in step_numbers:
+            print(nsteps)
             etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,forced=forced)
             #RMS end-to-end distance
             rms.append(np.sqrt(np.mean(np.square(etedist_list))))
@@ -165,24 +167,80 @@ class Walker():
             rms_fluc.append(np.sqrt((np.mean(np.square(etedist_list))-np.mean(etedist_list)**2)*nwalks/(nwalks-1)))
             #Standard error estimate
             std_err.append(np.sqrt((np.mean(np.square(etedist_list))-np.mean(etedist_list)**2)/(nwalks-1)))
+        chain_lengths = [i * self.r for i in step_numbers]
+        if holdon==True:
+            return chain_lengths,rms,rms_fluc,std_err
+        else:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.plot(chain_lengths,rms,label="RMS End-to-End Distance")
+            ax.plot(chain_lengths,rms_fluc,label="RMS Fluctuation Estimate")
+            ax.plot(chain_lengths,std_err,label="Standard Error Estimate")
+            ax.set_xlabel("Chain length")
+            plt.legend()
+
+            ext=""
+            if avoid==True:
+                ext+=", self-avoiding"
+            if limited==True:
+                ext += ", limited"
+            if forced == True:
+                ext+=", forced"
+
+            plt.suptitle("End-to-end distance measures vs chain length \n for " +str(nwalks)+" walks of "+self.name+ext)
+            plt.show()
+
+    def plot_multiple_end_to_end_distances_holdon(self,nwalks=10):
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        chain_lengths = [i*self.r for i in step_numbers]
-        ax.plot(chain_lengths,rms,label="RMS End-to-End Distance")
-        ax.plot(chain_lengths,rms_fluc,label="RMS Fluctuation Estimate")
-        ax.plot(chain_lengths,std_err,label="Standard Error Estimate")
         ax.set_xlabel("Chain length")
+        plt.suptitle("End-to-end distance measures vs chain length \n for " +str(nwalks)+" walks of "+self.name+', bead radius='+str(self.rho0))
+        cmap=get_cmap(n=4)
+
+        #Non-self avoid
+        i=0
+        chain_lengths, rms, rms_fluc, std_err = self.plot_multiple_end_to_end_distances(nwalks=nwalks,avoid=False,limited=False,forced=False,holdon=True)
+        ax.plot(chain_lengths, rms, label="Non self avoiding",color=cmap(i))
+        ax.plot(chain_lengths, rms_fluc,color=cmap(i))
+        ax.plot(chain_lengths, std_err,color=cmap(i))
+
+        #Self avoid
+        i=1
+        chain_lengths, rms, rms_fluc, std_err = self.plot_multiple_end_to_end_distances(nwalks=nwalks,avoid=True,limited=False,forced=False,holdon=True)
+        ax.plot(chain_lengths, rms, label="Self avoiding",color=cmap(i))
+        ax.plot(chain_lengths, rms_fluc,color=cmap(i))
+        ax.plot(chain_lengths, std_err,color=cmap(i))
+
+        #Self avoid:limited
+        i=2
+        chain_lengths, rms, rms_fluc, std_err = self.plot_multiple_end_to_end_distances(nwalks=nwalks,avoid=True,limited=True,forced=False,holdon=True)
+        ax.plot(chain_lengths, rms, label="Self avoiding: limited",color=cmap(i))
+        ax.plot(chain_lengths, rms_fluc,color=cmap(i))
+        ax.plot(chain_lengths, std_err,color=cmap(i))
+
+        #Self avoid:forced
+        i=3
+        chain_lengths, rms, rms_fluc, std_err = self.plot_multiple_end_to_end_distances(nwalks=nwalks,avoid=True,limited=True,forced=True,holdon=True)
+        ax.plot(chain_lengths, rms, label="Self avoiding: forced",color=cmap(i))
+        ax.plot(chain_lengths, rms_fluc,color=cmap(i))
+        ax.plot(chain_lengths, std_err,color=cmap(i))
+
+
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+        textstr="RMS"
+        # place a text box in upper left in axes coords
+        ax.text(0.90, 0.95, textstr, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', bbox=props)
+        textstr = "RMS\nfluctuation"
+        # place a text box in upper left in axes coords
+        ax.text(0.90, 0.3, textstr, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', bbox=props)
+        textstr = "Standard error\nestimate"
+        # place a text box in upper left in axes coords
+        ax.text(0.90, 0.1, textstr, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', bbox=props)
+
         plt.legend()
-
-        ext=""
-        if avoid==True:
-            ext+=", self-avoiding"
-        if limited==True:
-            ext += ", limited"
-        if forced == True:
-            ext+=", forced"
-
-        plt.suptitle("End-to-end distance measures vs chain length \n for " +str(nwalks)+" walks of "+self.name+ext)
         plt.show()
 
     def hist_quotient_length_etedist(self,nsteps=100,nwalks=10,avoid=False,limited=True,forced=False):
@@ -266,9 +324,11 @@ class Walker():
             ext += ", limited"
         if forced == True:
             ext += ", forced"
-
-        for rho in range(1,10):
-            self.rho0=rho/100
+        rhos = list(range(1,5))
+        rhos.append(4.99)
+        for rho in rhos:
+            print(rho)
+            self.rho0=rho/10
             if my==True: #Bead size by expected value
                 qs.append(2*self.rho0/self.my)
             else: #Bead size by standard deviation
@@ -541,24 +601,34 @@ def reptation_plot_multiple_end_to_end_distances(nwalks=10,avoid=False,limited=F
     rms_fluc = []
     std_err = []
     step_numbers = range(10,100,10)
-    for nsteps in step_numbers:
-        repwalk=Reptation_walker(nsteps=nsteps)
-        etedist_list, length_list = repwalk.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited)
-        #RMS end-to-end distance
-        rms.append(np.sqrt(np.mean(np.square(etedist_list))))
-        #RMS fluctuation estimate
-        rms_fluc.append(np.sqrt((np.mean(np.square(etedist_list))-np.mean(etedist_list)**2)*nwalks/(nwalks-1)))
-        #Standard error estimate
-        std_err.append(np.sqrt((np.mean(np.square(etedist_list))-np.mean(etedist_list)**2)/(nwalks-1)))
+    rounds=10
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    chain_lengths = [i*repwalk.r for i in step_numbers]
-    ax.plot(chain_lengths,rms,label="RMS End-to-End Distance")
-    ax.plot(chain_lengths,rms_fluc,label="RMS Fluctuation Estimate")
-    ax.plot(chain_lengths,std_err,label="Standard Error Estimate")
+    first=True
+    for nsteps in step_numbers:
+        rms = []
+        rms_fluc = []
+        std_err = []
+        for i in range(rounds):
+            repwalk=Reptation_walker(nsteps=nsteps)
+            etedist_list, length_list = repwalk.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited)
+            #RMS end-to-end distance
+            rms.append(np.sqrt(np.mean(np.square(etedist_list))))
+            #RMS fluctuation estimate
+            rms_fluc.append(np.sqrt((np.mean(np.square(etedist_list))-np.mean(etedist_list)**2)*nwalks/(nwalks-1)))
+            #Standard error estimate
+            std_err.append(np.sqrt((np.mean(np.square(etedist_list))-np.mean(etedist_list)**2)/(nwalks-1)))
+        chain_lengths = [nsteps*repwalk.r for i in range(rounds)]
+
+        ax.plot(chain_lengths,rms,color="blue")
+        ax.plot(chain_lengths,rms_fluc,color="orange")
+        ax.plot(chain_lengths,std_err,color="green")
+        if first == True:
+            plt.legend(["RMS End-to-End Distance","RMS Fluctuation Estimate","Standard Error Estimate"])
+            first=False
     ax.set_xlabel("Chain length")
-    plt.legend()
-    plt.suptitle("End-to-end distance measures vs chain length \n for " +str(nwalks)+" reptation walks (self-avoiding)")
+
+    plt.suptitle("End-to-end distance measures vs chain length \n for 100 rounds of " +str(nwalks)+" reptation walks (self-avoiding)")
     plt.show()
 
 def get_cmap(n, name='hsv'):
@@ -590,13 +660,13 @@ def main():
     gridwalk = Grid_walker()
     #I PDF:
     # gridwalk.plot_multiple_end_to_end_distances(nwalks=50,avoid=False,limited=False,forced=False)
-    # gridwalk.plot_multiple_end_to_end_distances(nwalks=50, avoid=True,limited=False,forced=False)
+    # gridwalk.plot_multiple_end_to_end_distances(nwalks=1000, avoid=True,limited=False,forced=False)
     # gridwalk.plot_multiple_end_to_end_distances(avoid=True,limited=True,forced=False,nwalks=50)
     # gridwalk.plot_multiple_end_to_end_distances(avoid=True, limited=True, forced=True, nwalks=50)
     # gridwalk.plot_success_rate_vs_nsteps(limited=False)
     # gridwalk.plot_success_rate_vs_nsteps(limited=True)
-    gridwalk.normplot(nwalks=100,avoid=True)
-
+    # gridwalk.normplot(nwalks=100,avoid=True)
+    #gridwalk.plot_multiple_end_to_end_distances_holdon(nwalks=1000)
 
 
     # print(gridwalk.get_multiple_end_to_end_distances(nwalks=10,avoid=False))
@@ -615,9 +685,13 @@ def main():
 
     chainwalk = Freely_jointed_chain()
     #In PDF:
+    #chainwalk.plot_bead_size_variation(nsteps=15, nwalks=1000, limited=False, forced=False)
+    #chainwalk.plot_bead_size_variation(nsteps=15, nwalks=1000, limited=True, forced=False)
+    #chainwalk.plot_bead_size_variation(nsteps=15,nwalks=1000,limited=True,forced=True)
+
     #chainwalk.plot_multiple_end_to_end_distances(nwalks=50)
     #chainwalk.plot_multiple_end_to_end_distances(nwalks=50,avoid=True,limited=True,forced=False)
-    #chainwalk.plot_multiple_end_to_end_distances(nwalks=50,avoid=True,limited=False,forced=False)
+    #chainwalk.plot_multiple_end_to_end_distances(nwalks=1000,avoid=True,limited=False,forced=False)
     #chainwalk.plot_multiple_end_to_end_distances(nwalks=50,avoid=True,limited=True,forced=True)
     #chainwalk.plot_bead_size_variation(nwalks=50,limited=True,forced=True)
     #chainwalk.plot_bead_size_variation(nwalks=50,limited=True,forced=False)
@@ -626,6 +700,7 @@ def main():
     #chainwalk.plot_bead_size_variation(limited=False,forced=False,success=True)
     #chainwalk.plot_success_rate_vs_nsteps(limited=False)
     #chainwalk.plot_success_rate_vs_nsteps(limited=True)
+    #chainwalk.plot_multiple_end_to_end_distances_holdon(nwalks=1000)
 
     #chainwalk.normplot(nwalks=1000)
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=2,avoid=True)
@@ -681,11 +756,12 @@ def main():
     # chainwalk_stepl_variations.plot_bead_size_variation(success=True,limited=False,nsteps=50) #Bad performace due to self.r too short too often (immediate self-intersection)
     # chainwalk_stepl_variations.plot_etedist_parameters_multiple_versions()
     # chainwalk.plot_bead_size_variation(limited=True,forced=True,success=True)
-    chainwalk_stepl_variations.normplot(nwalks=1000)
+    # chainwalk_stepl_variations.normplot(nwalks=1000)
 
 
     reptationwalk = Reptation_walker(nsteps=10)
     #reptationwalk.walk_with_self_avoid()
     #reptationwalk.plot_the_walk(beads=True)
-    #reptation_plot_multiple_end_to_end_distances(nwalks=50)
+    reptation_plot_multiple_end_to_end_distances(nwalks=10000)
+
 main()
