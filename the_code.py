@@ -666,7 +666,7 @@ def main():
     # gridwalk.plot_success_rate_vs_nsteps(limited=False)
     # gridwalk.plot_success_rate_vs_nsteps(limited=True)
     # gridwalk.normplot(nwalks=100,avoid=True)
-    #gridwalk.plot_multiple_end_to_end_distances_holdon(nwalks=1000)
+    # gridwalk.plot_multiple_end_to_end_distances_holdon(nwalks=1000)
 
 
     # print(gridwalk.get_multiple_end_to_end_distances(nwalks=10,avoid=False))
