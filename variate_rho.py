@@ -525,6 +525,6 @@ def main():
     reptationwalk = Reptation_walker(nsteps=10)
     #reptationwalk.walk_with_self_avoid()
     #reptationwalk.plot_the_walk(beads=True)
-    #reptationwalk.plot_multiple_end_to_end_distances(nwalks=100)
+    reptationwalk.plot_multiple_end_to_end_distances(nwalks=10)
 
 main()
