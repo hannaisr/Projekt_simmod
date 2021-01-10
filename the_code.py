@@ -1,9 +1,11 @@
 import random as rnd
 import numpy as np
+import re
 import matplotlib.pyplot as plt # For 3D plot
 from mpl_toolkits.mplot3d import Axes3D # For 3D plot
 from scipy.stats import norm # histogram fitting
 from scipy.stats import normaltest
+
 
 class Walker():
     """Walked positions are stored in a list"""
@@ -280,7 +282,7 @@ class Walker():
 
 class Grid_walker(Walker):
     def __init__(self):
-        self.name = "Grid walker, r="+str(self.r)
+        self.name = "Grid walker"
 
     def walk_one_step(self, limited=False):
         possible_directions = [-3,-2,-1,1,2,3]
@@ -321,7 +323,7 @@ class Grid_walker(Walker):
 
 class Freely_jointed_chain(Walker):
     def __init__(self):
-        self.name = 'Freely jointed chain, r='+str(self.r)
+        self.name = 'Freely jointed chain'
 
     def walk_one_step(self, limited=False):
         current_pos = self.visited_points[-1][:]
@@ -464,7 +466,7 @@ class Grid_walker_stepl_variations(Grid_walker, Freely_jointed_chain):
     """Parallell/perpendicular motion with a randomly distributed step length"""
     def __init__(self,distribution="N"):
         self.distribution = distribution
-        self.name = "Grid walker with step length variation, mu="+str(self.my)+", sigma="+str(self.sigma)
+        self.name = "Grid walker with step length variation"
 
     def walk_one_step(self, limited=False):
         if self.distribution == "N":
@@ -480,7 +482,7 @@ class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
     """Freely jointed chain with randomly distributed step lengths"""
     def __init__(self, distribution="N"):
         self.distribution = distribution
-        self.name = "Freely jointed chain with step length variations, mu="+str(self.my)+", sigma="+str(self.sigma)
+        self.name = "Freely jointed chain with step length variations"
 
     def walk_one_step(self, limited=False):
         if self.distribution == "N":
@@ -495,14 +497,14 @@ def get_cmap(n, name='hsv'):
     return plt.cm.get_cmap(name, n + 1)
 
 
-def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linear',show=True):
+def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linear',show=True,save=False,fileName=None):
     """xlists and ylists can be lists of lists if more than one series should be plotted."""
     print("xlists:",xlists)
     print("ylists:",ylists)
     plt.figure()
-    plt.title(str(title))
-    plt.xlabel(xlabel)#,fontsize=16)
-    plt.ylabel(ylabel)#,fontsize=16)
+    plt.title(str(title),fontsize=16)
+    plt.xlabel(xlabel,fontsize=14)
+    plt.ylabel(ylabel,fontsize=14)
     if type(ylists[0])==list and type(xlists[0])!=list:
         n = len(ylists)
         xlists = [xlists]*n
@@ -514,14 +516,24 @@ def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linear',sho
     else:
         plt.plot(xlists,ylists)
     if labels_list:
-        plt.legend()
+        plt.legend(fontsize=14)
     if scale == 'log':
         plt.xscale('log')
         plt.yscale('log')
     if show is True:
         plt.show()
+    if save is True:
+        if fileName:
+            if fileName[-4:] == ".png":
+                name = str(fileName).replace(" ","_")
+            else:
+                name = str(fileName).replace(" ","_")+".png"
+        else:
+            name = str(title).replace(" ","_")+".png"
+        print(name)
+        plt.savefig(name)
 
-def plot_success_rate_vs_nsteps_comparison(instances,limited=True,bothLimitedAndNot=True,nsteps_range=range(2,25,1)):
+def plot_success_rate_vs_nsteps_comparison(instances,limited=True,bothLimitedAndNot=True,nsteps_range=range(2,25,1),show=True,save=False):
     """Plots success rate vs number of steps in walk for various instances, or just one. Also compares limited with not limited if bothLimitedAndNot is True"""
     instances = list(instances) # require list
     success_rates = []
@@ -560,7 +572,13 @@ def plot_success_rate_vs_nsteps_comparison(instances,limited=True,bothLimitedAnd
         print(instance.name)
 
     # Plot
-    plot2D(title,"Number of steps", "Success rate", list(nsteps_range), success_rates, labels_list)
+    fileName = "SR_vs_nsteps"
+    for instance in instances:
+        fileName += " " + instance.name
+    print(fileName)
+    fileName = re.sub('\W+',' ',fileName)+" rho"+str(instances[0].rho0)+" r"+str(instances[0].r)
+    print(fileName)
+    plot2D(title,"Number of steps", "Success rate", list(nsteps_range), success_rates, labels_list,show=show,fileName=fileName,save=save)
 
 
 def main():
@@ -634,7 +652,7 @@ def main():
     #reptationwalk.plot_the_walk(beads=True)
     #reptationwalk.plot_multiple_end_to_end_distances(nwalks=100)
 
-    plot_success_rate_vs_nsteps_comparison([gridwalk],nsteps_range=range(2,40,1))
-    plot_success_rate_vs_nsteps_comparison([chainwalk],nsteps_range=range(2,18,1))
+    plot_success_rate_vs_nsteps_comparison([gridwalk],nsteps_range=range(2,10,1),show=False,save=True)
+    # plot_success_rate_vs_nsteps_comparison([chainwalk],nsteps_range=range(2,18,1))
 
 main()
