@@ -10,7 +10,7 @@ from scipy.stats import normaltest
 class Walker():
     """Walked positions are stored in a list"""
     # Initiate list of visited points
-    rho0 = 0.499 # size of first bead, the very least 1/2 step length.
+    rho0 = 0.4 # size of first bead, the very least 1/2 step length.
     # Modify generate_rho() to manage method for generating the sizes of the other beads
     origin = [0,0,0,rho0] # position and bead size are stored in list
     visited_points = [origin]
@@ -703,9 +703,15 @@ def plot_success_rate_vs_nsteps(instances,limited=True,bothLimitedAndNot=True,ns
     if bothLimitedAndNot is True:
         limited = True
     if r_list is None:
-        r_list = [instances[0].my]
+        if rho_list:
+            r_list=[instances[0].my]*len(rho_list)
+        else:
+            r_list = [instances[0].my]
     if rho_list is None:
-        rho_list = [instances[0].rho0]
+        if r_list:
+            rho_list=[instances[0].rho0]*len(t_list)
+        else:
+            rho_list = [instances[0].rho0]
 
     # Make plot title and fileName
     title = "Success rate vs number of steps"
@@ -989,11 +995,13 @@ def main():
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=False,save=True,scale='linlin')  # Limited is a (somewhat) straight line
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=True,save=True,scale='linlog')   # Regular is a straight line
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=True,save=True,scale='loglog')   # Both look strange
+    # FJ STEP LENGTH VARIATION
+    plot_success_rate_vs_nsteps(chainwalk_stepl_variations)
 
     ### SUCCESS RATE VS BEAD SIZE
     ## LIMITED & REGULAR
     # plot_success_rate_vs_bead_size([chainwalk],m_range=np.arange(0,0.5,0.025),save=True)
-    plot_success_rate_vs_bead_size([chainwalk],nsteps_list=[5,10,15],size="volume",m_range=np.arange(0,0.5,0.025),save=True,labelposition="outside",scale="loglog")
+    plot_success_rate_vs_bead_size([chainwalk],nsteps_list=[5,10,15],size="volume",m_range=np.arange(0,0.5,0.025),save=True,labelposition="outside",scale="linlog")
 
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(1,16,1),show=True,save=True,scale='linlin',r_list=[1,2,3],rho_list=[0.3,0.6,0.9],labelposition="outside")
 
