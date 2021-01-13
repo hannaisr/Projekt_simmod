@@ -87,7 +87,7 @@ class Walker():
 
     def generate_rho(self):
         if self.variate_rho is True:
-            return(self.r-self.visited_points[-1][3]-0.0000001) # Current and last bead radiuses alwys cover the whole length of the step
+            return(self.r-self.visited_points[-1][3]-0.0000001) # Current and last bead radii always cover the whole length of the step
         else:
             return(self.rho0)
 
@@ -97,6 +97,8 @@ class Walker():
 
     def restart(self):
         """Resets list of visited points."""
+        self.origin = self.origin[:3]
+        self.origin.append(self.rho0)
         self.visited_points = [self.origin]
         self.last_direction = 0
         self.length = 0
@@ -125,7 +127,7 @@ class Walker():
     def get_success_rate(self,nsteps=20,limited=True):
         """Calculates success rate from nsuccessful_walks number of successful walks."""
         total_fails = 0
-        nsuccessful_walks = 500
+        nsuccessful_walks = 1000
         for i in range(nsuccessful_walks):
             total_fails += self.walk_with_self_avoid(nsteps,limited)
         return nsuccessful_walks/(nsuccessful_walks+total_fails)
@@ -318,7 +320,7 @@ class Walker():
         plt.show()
         return step_numbers,success_rates
 
-    def plot_bead_size_variation(self,nsteps=100,nwalks=10,my=True,success=False,limited=False,forced=False):
+    def plot_bead_size_variation(self,nsteps=100,nwalks=10,my=True,success=False,limited=False,forced=False,newFig=True):
         """Plots the relationship between quotient bead size/my or sigma of step length and RMS End-to-End distance or success rate in self-avoiding chains"""
         qs=[] #Quotients bead size/expected value of step length
         rms=[]
@@ -365,7 +367,8 @@ class Walker():
             ax.set_ylabel("Success rate")
             plt.suptitle("Success rate vs bead size for " + str(nsteps) + "-steps \n"+self.name+ext)
         plt.legend()
-        plt.show()
+        if newFig is True:
+            plt.show()
 
     def normplot(self,nsteps=100,nwalks=10,avoid=False,limited=True,forced=False):
         etedistlist,l = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,forced=forced)
@@ -393,6 +396,7 @@ class Walker():
 class Grid_walker(Walker):
     def __init__(self):
         self.name = "Grid walker"
+        self.shortname = "grid"
 
     def walk_one_step(self, limited=False):
         possible_directions = [-3,-2,-1,1,2,3]
@@ -434,6 +438,7 @@ class Grid_walker(Walker):
 class Freely_jointed_chain(Walker):
     def __init__(self):
         self.name = 'Freely jointed chain'
+        self.shortname = "FJ"
 
     def walk_one_step(self, limited=False):
         current_pos = self.visited_points[-1][:]
@@ -483,6 +488,7 @@ class Reptation_walker(Grid_walker):
         self.visited_points = self.gridwalk.visited_points #The gridwalk.visited_points will be modified as saw is
         self.nsteps=nsteps
         self.name = name
+        self.shortname = "rept"
 
     def test_avoid(self):
         """Test if latest site is already occupied. Return True if so, False if not."""
@@ -557,6 +563,7 @@ class Directed_walker(Freely_jointed_chain):
     """Walks in specific direction with specified distribution."""
     def __init__(self,name='Freely jointed chain with directed walk'):
         self.name=name
+        self.shortname = "dirw"
 
     def walk_one_step(self, limited=False):
         current_pos = self.visited_points[-1][:]
@@ -577,6 +584,7 @@ class Grid_walker_stepl_variations(Grid_walker, Freely_jointed_chain):
     def __init__(self,distribution="N"):
         self.distribution = distribution
         self.name = "Grid walker with step length variation"
+        self.shortname = "steplvar grid"
 
     def walk_one_step(self, limited=False):
         if self.distribution == "N":
@@ -593,6 +601,7 @@ class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
     def __init__(self, distribution="N"):
         self.distribution = distribution
         self.name = "Freely jointed chain with step length variations"
+        self.shortname = "steplvar FJ"
 
     def walk_one_step(self, limited=False):
         if self.distribution == "N":
@@ -643,7 +652,7 @@ def get_cmap(n, name='hsv'):
     return plt.cm.get_cmap(name, n + 1)
 
 
-def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linear',show=True,save=False,fileName=None):
+def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linlin',show=True,save=False,fileName=None,labelposition="inside"):
     """xlists and ylists can be lists of lists if more than one series should be plotted."""
     print("xlists:",xlists)
     print("ylists:",ylists)
@@ -651,23 +660,28 @@ def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linear',sho
     plt.title(str(title),fontsize=16)
     plt.xlabel(xlabel,fontsize=14)
     plt.ylabel(ylabel,fontsize=14)
+    # Make sure there is enough x-values to plot
     if type(ylists[0])==list and type(xlists[0])!=list:
         n = len(ylists)
         xlists = [xlists]*n
+    # Make the plot
     if type(xlists[0]) is list:
-        # if not len(xlists)==len(ylists)==len(labels_list):
-        #     raise ValueError    # xlists, ylists and labels_list must be of same length
         for i in range(len(xlists)):
             plt.plot(xlists[i],ylists[i],label=labels_list[i])
     else:
         plt.plot(xlists,ylists)
+    # Generate labels
     if labels_list:
-        plt.legend(fontsize=14)
-    if scale == 'log':
+        if labelposition=="inside":
+            plt.legend()
+        if labelposition=="outside":
+            plt.legend(bbox_to_anchor=(1.05,1),loc="upper left")
+    # Alter scale on axes
+    if scale[:3] == 'log':
         plt.xscale('log')
+    if scale[-3:] == 'log':
         plt.yscale('log')
-    if show is True:
-        plt.show()
+    # Save file
     if save is True:
         if fileName:
             if fileName[-4:] == ".png":
@@ -676,55 +690,164 @@ def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linear',sho
                 name = str(fileName).replace(" ","_")+".png"
         else:
             name = str(title).replace(" ","_")+".png"
-        print(name)
+        # print(name)
         plt.savefig(name)
+    # Show plot
+    if show is True:
+        plt.show()
 
-def plot_success_rate_vs_nsteps_comparison(instances,limited=True,bothLimitedAndNot=True,nsteps_range=range(2,25,1),show=True,save=False):
+def plot_success_rate_vs_nsteps(instances,limited=True,bothLimitedAndNot=True,nsteps_range=range(0,25,1),r_list=None,rho_list=None,show=True,save=False,scale='linlin',labelposition="inside"):
     """Plots success rate vs number of steps in walk for various instances, or just one. Also compares limited with not limited if bothLimitedAndNot is True"""
     instances = list(instances) # require list
     success_rates = []
     if bothLimitedAndNot is True:
         limited = True
-    # Make plot title
+    if r_list is None:
+        r_list = [instances[0].my]
+    if rho_list is None:
+        rho_list = [instances[0].rho0]
+
+    # Make plot title and fileName
     title = "Success rate vs number of steps"
-    # if len(instances)==1:
-        # title += " for "+str(instances[0].name)
-    # if limited==True and bothLimitedAndNot==False:
-        # title += ", limited walk"
+    fileName = "FJ vs nsteps"
+    if any(shortname=="FJ" for shortname in [instance.shortname for instance in instances]):
+        title += ", rho/r=" + str(round(rho_list[0]/r_list[0],3))
+        fileName += ", rho/r=" + str(round(rho_list[0]/r_list[0],3))
 
     # Make labels and store success rates
     labels_list = []
-    if bothLimitedAndNot is True:
-        n = 2
-    else:
-        n = 1
     for instance in instances:
+        for i in range(len(r_list)):
+            instance.my = r_list[i]
+            instance.rho0 = rho_list[i]
+            if (limited is True):
+                labels_list.append(str(instance.shortname)+", limited, r="+str(r_list[i]))
+            else:
+                labels_list.append(str(instance.shortname)+", r="+str(r_list[i]))
+            SR = []
+            for nsteps in nsteps_range:
+                SR.append(instance.get_success_rate(nsteps,limited))
+                print(nsteps)
+            success_rates.append(SR)
+            if bothLimitedAndNot is True:
+                labels_list.append(str(instance.shortname)+", regular, r="+str(r_list[i]))
+                SR = []
+                for nsteps in nsteps_range:
+                    SR.append(instance.get_success_rate(nsteps,limited=False))
+                    print(nsteps)
+                success_rates.append(SR)
+            print(instance.name)
+
+    # Plot
+    for instance in instances:
+        fileName += " " + instance.shortname
+    fileName = re.sub('\W+',' ',fileName)+" r " + str(r_list) + str(scale)
+    print("fileName:", fileName)
+    plot2D(title,"Number of steps", "Success rate", list(nsteps_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
+    return nsteps_range, success_rates
+
+def plot_success_rate_vs_bead_size(instances,nsteps,limited=True,bothLimitedAndNot=True,beadsize_range=np.arange(0.099,0.5,0.05),show=True,save=False,scale='linlin',labelposition="inside"):
+    """Plots success rate vs bead size for one or more instances. Also compares limited with not limited if bothLimitedAndNot is True.
+    nsteps is the number of steps in each walk."""
+    instances = list(instances) # require list
+    success_rates = []
+    if bothLimitedAndNot is True:
+        limited = True
+
+    # Make plot title
+    title = "Success rate vs bead size"
+
+    # Make labels and store success rates
+    labels_list = []
+    for instance in instances:
+        #  Labels
         if (limited is True):
             labels_list.append(str(instance.name)+", limited")
         else:
             labels_list.append(str(instance.name))
+        # Success rates
         SR = []
-        for nsteps in nsteps_range:
+        for rho in beadsize_range:
+            instance.rho0 = rho
             SR.append(instance.get_success_rate(nsteps,limited))
             print(nsteps)
         success_rates.append(SR)
         if bothLimitedAndNot is True:
-            labels_list.append(str(instance.name)+", original")
+            labels_list.append(str(instance.name)+", regular")
             SR = []
-            for nsteps in nsteps_range:
+            for rho in beadsize_range:
+                instance.rho0 = rho
                 SR.append(instance.get_success_rate(nsteps,limited=False))
                 print(nsteps)
             success_rates.append(SR)
         print(instance.name)
 
     # Plot
-    fileName = "SR_vs_nsteps"
+    fileName = "SR_vs_beadsize"
     for instance in instances:
         fileName += " " + instance.name
     print(fileName)
-    fileName = re.sub('\W+',' ',fileName)+" rho"+str(instances[0].rho0)+" r"+str(instances[0].r)
+    fileName = re.sub('\W+',' ',fileName)+" rho"+str(instances[0].rho0)+" r"+str(instances[0].r) + " " + str(scale)
     print(fileName)
-    plot2D(title,"Number of steps", "Success rate", list(nsteps_range), success_rates, labels_list,show=show,fileName=fileName,save=save)
+    plot2D(title,"Bead size/step length", "Success rate", list(beadsize_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
+    return beadsize_range, success_rates
+
+def plot_success_rate_vs_r(instances,nsteps=10,limited=True,bothLimitedAndNot=True,r_range=np.arange(1,10,1),M=0.4,show=True,save=False,scale='linlin',labelposition="inside"):
+    """Plots success rate vs bead size for one or more instances. Also compares limited with not limited if bothLimitedAndNot is True.
+    M is bead size/step length, can be a list"""
+    instances = list(instances) # require list
+    success_rates = []
+    if type(M) == float:
+        M = [M]
+    if bothLimitedAndNot is True:
+        limited = True
+
+    # Make plot title
+    title = "Success rate vs step length, " + str(nsteps) + " steps"
+
+    # Make labels and store success rates
+    labels_list = []
+    for instance in instances:
+        for m in M:
+            #  Labels
+            if (limited is True):
+                labels_list.append(str(instance.shortname)+", limited, rho/r="+str(m))
+            else:
+                labels_list.append(str(instance.shortname)+", rho/r="+str(m))
+            # Success rates
+            SR = []
+            for r in r_range:
+                instance.my = r
+                instance.rho0 = r*m
+                SR.append(instance.get_success_rate(nsteps,limited))
+                print(r)
+            success_rates.append(SR)
+            if bothLimitedAndNot is True:
+                labels_list.append(str(instance.shortname)+", regular, rho/r="+str(m))
+                SR = []
+                for r in r_range:
+                    instance.my = r
+                    instance.rho0 = r*m
+                    SR.append(instance.get_success_rate(nsteps,limited=False))
+                    print(r)
+                success_rates.append(SR)
+            print(instance.name)
+
+    # Plot
+    fileName = "SR_vs_r_m" + str(M)
+    for instance in instances:
+        fileName += " " + instance.shortname
+    if bothLimitedAndNot is True:
+        fileName += " lim and reg "
+    elif limited is True:
+        fileName += " limited "
+    else:
+        fileName += " regular "
+    print(fileName)
+    fileName = re.sub('\W+',' ',fileName) + " " + str(scale)
+    print(fileName)
+    plot2D(title,"Step length", "Success rate", list(r_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
+    return r_range, success_rates
 
 
 def main():
@@ -756,10 +879,12 @@ def main():
 
     chainwalk = Freely_jointed_chain()
     #In PDF:
-    #chainwalk.plot_bead_size_variation(nsteps=15, nwalks=1000, limited=False, forced=False)
+    # chainwalk.plot_bead_size_variation(nsteps=15, nwalks=1000, limited=False, forced=False)
     #chainwalk.plot_bead_size_variation(nsteps=15, nwalks=1000, limited=True, forced=False)
     #chainwalk.plot_bead_size_variation(nsteps=15,nwalks=1000,limited=True,forced=True)
 
+    # chainwalk.plot_bead_size_variation(nsteps=15, nwalks=1000, limited=False, forced=False, newFig=False)
+    # chainwalk.plot_bead_size_variation(nsteps=15, nwalks=1000, limited=True, forced=False)
     #chainwalk.plot_multiple_end_to_end_distances(nwalks=50)
     #chainwalk.plot_multiple_end_to_end_distances(nwalks=50,avoid=True,limited=True,forced=False)
     #chainwalk.plot_multiple_end_to_end_distances(nwalks=1000,avoid=True,limited=False,forced=False)
@@ -835,7 +960,27 @@ def main():
     #reptationwalk.plot_the_walk(beads=True)
     # reptation_plot_multiple_end_to_end_distances(nwalks=10000)
 
-    plot_success_rate_vs_nsteps_comparison([gridwalk],nsteps_range=range(2,10,1),show=False,save=True)
-    # plot_success_rate_vs_nsteps_comparison([chainwalk],nsteps_range=range(2,18,1))
+
+    ### SUCCESS RATE VS NUMBER OF STEPS
+    ## LIMITED & NOT LIMITED (REGULAR)
+    # GRID
+    # plot_success_rate_vs_nsteps([gridwalk],nsteps_range=range(0,25,1),show=False,save=True,scale='linlin')   # Limited quite straight
+    # plot_success_rate_vs_nsteps([gridwalk],nsteps_range=range(0,25,1),show=False,save=True,scale='linlog')   # Both quite straight
+    # plot_success_rate_vs_nsteps([gridwalk],nsteps_range=range(0,25,1),show=True,save=True,scale='loglog')    # Both strange
+    # FJ
+    # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=False,save=True,scale='linlin')  # Limited is a (somewhat) straight line
+    # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=True,save=True,scale='linlog')   # Regular is a straight line
+    # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=True,save=True,scale='loglog')   # Both look strange
+
+    ### SUCCESS RATE VS BEAD SIZE
+    ## LIMITED & REGULAR
+
+    plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,10,1),show=True,save=True,scale='linlin',r_list=[1,2,3],rho_list=[0.3,0.6,0.9],labelposition="outside")
+
+    ## Check if success rate depends on r or just the relation between r and rho
+    # plot_success_rate_vs_r([chainwalk],r_range=np.arange(1,30,1),M=[0.2,0.3,0.4],show=True,save=True,scale='linlin')
+
+
+
 
 main()
