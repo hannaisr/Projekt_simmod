@@ -130,6 +130,9 @@ class Walker():
         nsuccessful_walks = 1000
         for i in range(nsuccessful_walks):
             total_fails += self.walk_with_self_avoid(nsteps,limited)
+        if total_fails <= 1.5*nsuccessful_walks:    # Do it all again if the success rate is large
+            for i in range(nsuccessful_walks):
+                total_fails += self.walk_with_self_avoid(nsteps,limited)
         return nsuccessful_walks/(nsuccessful_walks+total_fails)
 
     def get_end_to_end_distance(self):
@@ -748,32 +751,28 @@ def plot_success_rate_vs_nsteps(instances,limited=True,bothLimitedAndNot=True,ns
     plot2D(title,"Number of steps", "Success rate", list(nsteps_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
     return nsteps_range, success_rates
 
-def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius",limited=True,bothLimitedAndNot=True,m_range=np.arange(0,0.5,0.025),show=True,save=False,scale='linlin',labelposition="outside"):
+def plot_success_rate_vs_bead_size(instances,nsteps_range=[5,10,15],size="radius",limited=True,bothLimitedAndNot=True,m_range=np.arange(0,0.5,0.025),show=True,save=False,scale='linlin',labelposition="outside"):
     """Plots success rate vs bead size for one or more instances. Also compares limited with not limited if bothLimitedAndNot is True.
     nsteps is the number of steps in each walk
     m = rho/r"""
     instances = list(instances) # require list
     success_rates = []
-    if type(nsteps_list)!= list:
-        nsteps_list=[nsteps_list]
+    if type(nsteps_range)!= list:
+        nsteps_range=[nsteps_range]
     if bothLimitedAndNot is True:
         limited = True
     volume_list = m_range**3*4/3*np.pi
 
     # Make plot title
-    title = "Success rate vs bead"
-    fileName = "SR_vs_bead"
-    if size == "volume":
-        title += " volume"
-        fileName += "volume"
-    else:
-        title += " radius"
-        fileName += "radius"
+    title = "Success rate vs bead "+size
+    fileName = "SR_vs_bead"+size
 
     # Make labels and store success rates
     labels_list = []
     for instance in instances:
-        for nsteps in nsteps_list:
+        instance.my = 1
+        instance.rho = 0.1
+        for nsteps in nsteps_range:
             #  Labels
             if (limited is True):
                 labels_list.append(str(instance.shortname)+", lim, "+str(nsteps)+" steps")
@@ -782,7 +781,7 @@ def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius"
             # Success rates
             SR = []
             for m in m_range:
-                instance.rho0 = m*instance.r
+                instance.rho0 = m*instance.my
                 SR.append(instance.get_success_rate(nsteps,limited))
                 print(m)
             success_rates.append(SR)
@@ -790,7 +789,7 @@ def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius"
                 labels_list.append(str(instance.shortname)+", reg, "+str(nsteps)+" steps")
                 SR = []
                 for m in m_range:
-                    instance.rho0 = m*instance.r
+                    instance.rho0 = m*instance.my
                     SR.append(instance.get_success_rate(nsteps,limited=False))
                     print(m)
                 success_rates.append(SR)
@@ -807,9 +806,9 @@ def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius"
     for instance in instances:
         fileName += " " + instance.shortname
     print(fileName)
-    fileName = re.sub('\W+',' ',fileName)+" r"+str(instances[0].r)+" steps"+str(nsteps_list)+" "+str(scale)
+    fileName = re.sub('\W+',' ',fileName)+" r"+str(instances[0].r)+" steps"+str(nsteps_range)+" "+str(scale)
     print(fileName)
-    plot2D(title,xname, "Success rate", x_list, success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
+    plot2D(title, xname, "Success rate", x_list, success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
     return m_range, success_rates
 
 def plot_success_rate_vs_r(instances,nsteps=10,limited=True,bothLimitedAndNot=True,r_range=np.arange(1,10,1),M=0.4,show=True,save=False,scale='linlin',labelposition="inside"):
@@ -992,12 +991,18 @@ def main():
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=True,save=True,scale='linlog')   # Regular is a straight line
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=True,save=True,scale='loglog')   # Both look strange
     # FJ STEP LENGTH VARIATION
-    plot_success_rate_vs_nsteps([chainwalk_stepl_variations],nsteps_range=range(1,20,1),m_range=0.4,save=True)
+    # plot_success_rate_vs_nsteps([chainwalk_stepl_variations],nsteps_range=range(1,20,1),m_range=0.4,save=True)
 
     ### SUCCESS RATE VS BEAD SIZE
     ## LIMITED & REGULAR
+    # FJ
     # plot_success_rate_vs_bead_size([chainwalk],m_range=np.arange(0,0.5,0.025),save=True)
-    # plot_success_rate_vs_bead_size([chainwalk],nsteps_list=[5,10,15],size="volume",m_range=np.arange(0,0.5,0.025),save=True,labelposition="outside",scale="linlog")
+    # plot_success_rate_vs_bead_size([chainwalk],nsteps_range=[5,10,15],size="volume",m_range=np.arange(0,0.5,0.025),save=True,labelposition="outside",scale="linlog")
+    # FJ STEPLVAR
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],nsteps_range=10,save=True, labelposition="inside")
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",nsteps_range=10,save=True,labelposition="outside")
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",limited=True, bothLimitedAndNot=False,nsteps_range=[3,5,7,9,11,13],save=True,labelposition="outside")
+    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",limited=False, bothLimitedAndNot=False,nsteps_range=[3,5,7,9,11,13],save=True,labelposition="inside")
 
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(1,16,1),show=True,save=True,scale='linlin',r_list=[1,2,3],rho_list=[0.3,0.6,0.9],labelposition="outside")
 
