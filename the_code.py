@@ -746,51 +746,69 @@ def plot_success_rate_vs_nsteps(instances,limited=True,bothLimitedAndNot=True,ns
     plot2D(title,"Number of steps", "Success rate", list(nsteps_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
     return nsteps_range, success_rates
 
-def plot_success_rate_vs_bead_size(instances,nsteps,limited=True,bothLimitedAndNot=True,beadsize_range=np.arange(0.099,0.5,0.05),show=True,save=False,scale='linlin',labelposition="inside"):
+def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius",limited=True,bothLimitedAndNot=True,m_range=np.arange(0,0.5,0.025),show=True,save=False,scale='linlin',labelposition="outside"):
     """Plots success rate vs bead size for one or more instances. Also compares limited with not limited if bothLimitedAndNot is True.
-    nsteps is the number of steps in each walk."""
+    nsteps is the number of steps in each walk
+    m = rho/r"""
     instances = list(instances) # require list
     success_rates = []
+    if type(nsteps_list)!= list:
+        nsteps_list=[nsteps_list]
     if bothLimitedAndNot is True:
         limited = True
+    volume_list = m_range**3*4/3*np.pi
 
     # Make plot title
-    title = "Success rate vs bead size"
+    title = "Success rate vs bead"
+    fileName = "SR_vs_bead"
+    if size == "volume":
+        title += " volume"
+        fileName += "volume"
+    else:
+        title += " radius"
+        fileName += "radius"
 
     # Make labels and store success rates
     labels_list = []
     for instance in instances:
-        #  Labels
-        if (limited is True):
-            labels_list.append(str(instance.name)+", limited")
-        else:
-            labels_list.append(str(instance.name))
-        # Success rates
-        SR = []
-        for rho in beadsize_range:
-            instance.rho0 = rho
-            SR.append(instance.get_success_rate(nsteps,limited))
-            print(nsteps)
-        success_rates.append(SR)
-        if bothLimitedAndNot is True:
-            labels_list.append(str(instance.name)+", regular")
+        for nsteps in nsteps_list:
+            #  Labels
+            if (limited is True):
+                labels_list.append(str(instance.shortname)+", lim, "+str(nsteps)+" steps")
+            else:
+                labels_list.append(str(instance.shortname)+", "+str(nsteps)+" steps")
+            # Success rates
             SR = []
-            for rho in beadsize_range:
-                instance.rho0 = rho
-                SR.append(instance.get_success_rate(nsteps,limited=False))
-                print(nsteps)
+            for m in m_range:
+                instance.rho0 = m*instance.r
+                SR.append(instance.get_success_rate(nsteps,limited))
+                print(m)
             success_rates.append(SR)
-        print(instance.name)
+            if bothLimitedAndNot is True:
+                labels_list.append(str(instance.shortname)+", reg, "+str(nsteps)+" steps")
+                SR = []
+                for m in m_range:
+                    instance.rho0 = m*instance.r
+                    SR.append(instance.get_success_rate(nsteps,limited=False))
+                    print(m)
+                success_rates.append(SR)
+            print(instance.name)
+
+    if size=="volume":
+        x_list = list(volume_list)
+        xname = "Bead volume"
+    else:
+        x_list = list(m_range)
+        xname = "Bead radius/step length"
 
     # Plot
-    fileName = "SR_vs_beadsize"
     for instance in instances:
-        fileName += " " + instance.name
+        fileName += " " + instance.shortname
     print(fileName)
-    fileName = re.sub('\W+',' ',fileName)+" rho"+str(instances[0].rho0)+" r"+str(instances[0].r) + " " + str(scale)
+    fileName = re.sub('\W+',' ',fileName)+" r"+str(instances[0].r)+" steps"+str(nsteps_list)+" "+str(scale)
     print(fileName)
-    plot2D(title,"Bead size/step length", "Success rate", list(beadsize_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
-    return beadsize_range, success_rates
+    plot2D(title,xname, "Success rate", x_list, success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
+    return m_range, success_rates
 
 def plot_success_rate_vs_r(instances,nsteps=10,limited=True,bothLimitedAndNot=True,r_range=np.arange(1,10,1),M=0.4,show=True,save=False,scale='linlin',labelposition="inside"):
     """Plots success rate vs bead size for one or more instances. Also compares limited with not limited if bothLimitedAndNot is True.
@@ -974,8 +992,10 @@ def main():
 
     ### SUCCESS RATE VS BEAD SIZE
     ## LIMITED & REGULAR
+    # plot_success_rate_vs_bead_size([chainwalk],m_range=np.arange(0,0.5,0.025),save=True)
+    plot_success_rate_vs_bead_size([chainwalk],nsteps_list=[5,10,15],size="volume",m_range=np.arange(0,0.5,0.025),save=True,labelposition="outside",scale="loglog")
 
-    plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,10,1),show=True,save=True,scale='linlin',r_list=[1,2,3],rho_list=[0.3,0.6,0.9],labelposition="outside")
+    # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(1,16,1),show=True,save=True,scale='linlin',r_list=[1,2,3],rho_list=[0.3,0.6,0.9],labelposition="outside")
 
     ## Check if success rate depends on r or just the relation between r and rho
     # plot_success_rate_vs_r([chainwalk],r_range=np.arange(1,30,1),M=[0.2,0.3,0.4],show=True,save=True,scale='linlin')
