@@ -696,47 +696,43 @@ def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linlin',sho
     if show is True:
         plt.show()
 
-def plot_success_rate_vs_nsteps(instances,limited=True,bothLimitedAndNot=True,nsteps_range=range(0,25,1),r_list=None,rho_list=None,show=True,save=False,scale='linlin',labelposition="inside"):
-    """Plots success rate vs number of steps in walk for various instances, or just one. Also compares limited with not limited if bothLimitedAndNot is True"""
+def plot_success_rate_vs_nsteps(instances,limited=True,bothLimitedAndNot=True,nsteps_range=range(0,25,1),m_range=0.4,show=True,save=False,scale='linlin',labelposition="inside"):
+    """Plots success rate vs number of steps in walk for various instances, or just one. Also compares limited with not limited if bothLimitedAndNot is True.
+    nsteps is the number of steps in each walk
+    m = rho/r_mean"""
     instances = list(instances) # require list
     success_rates = []
     if bothLimitedAndNot is True:
         limited = True
-    if r_list is None:
-        if rho_list:
-            r_list=[instances[0].my]*len(rho_list)
-        else:
-            r_list = [instances[0].my]
-    if rho_list is None:
-        if r_list:
-            rho_list=[instances[0].rho0]*len(t_list)
-        else:
-            rho_list = [instances[0].rho0]
+    if type(m_range) != list:
+        m_range = [m_range]
 
     # Make plot title and fileName
     title = "Success rate vs number of steps"
     fileName = "FJ vs nsteps"
     if any(shortname=="FJ" for shortname in [instance.shortname for instance in instances]):
-        title += ", rho/r=" + str(round(rho_list[0]/r_list[0],3))
-        fileName += ", rho/r=" + str(round(rho_list[0]/r_list[0],3))
+        title += ", rho/r=" + str(m_range)
+        fileName += " rhor" + str(m_range)
 
     # Make labels and store success rates
     labels_list = []
     for instance in instances:
-        for i in range(len(r_list)):
-            instance.my = r_list[i]
-            instance.rho0 = rho_list[i]
+        # Make sure the initial values are correct
+        instance.my = 1
+        instance.sigma = 0.1
+        for rho in m_range:
+            instance.rho0 = rho
             if (limited is True):
-                labels_list.append(str(instance.shortname)+", limited, r="+str(r_list[i]))
+                labels_list.append(str(instance.shortname)+", limited, rho/r="+str(rho))
             else:
-                labels_list.append(str(instance.shortname)+", r="+str(r_list[i]))
+                labels_list.append(str(instance.shortname)+", rho/r="+str(rho))
             SR = []
             for nsteps in nsteps_range:
                 SR.append(instance.get_success_rate(nsteps,limited))
                 print(nsteps)
             success_rates.append(SR)
             if bothLimitedAndNot is True:
-                labels_list.append(str(instance.shortname)+", regular, r="+str(r_list[i]))
+                labels_list.append(str(instance.shortname)+", regular, rho/r="+str(rho))
                 SR = []
                 for nsteps in nsteps_range:
                     SR.append(instance.get_success_rate(nsteps,limited=False))
@@ -747,7 +743,7 @@ def plot_success_rate_vs_nsteps(instances,limited=True,bothLimitedAndNot=True,ns
     # Plot
     for instance in instances:
         fileName += " " + instance.shortname
-    fileName = re.sub('\W+',' ',fileName)+" r " + str(r_list) + str(scale)
+    fileName = re.sub('\W+',' ',fileName)+" m" + str(m_range)+" "+str(scale)
     print("fileName:", fileName)
     plot2D(title,"Number of steps", "Success rate", list(nsteps_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
     return nsteps_range, success_rates
@@ -996,12 +992,12 @@ def main():
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=True,save=True,scale='linlog')   # Regular is a straight line
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=True,save=True,scale='loglog')   # Both look strange
     # FJ STEP LENGTH VARIATION
-    plot_success_rate_vs_nsteps(chainwalk_stepl_variations)
+    plot_success_rate_vs_nsteps([chainwalk_stepl_variations],nsteps_range=range(1,20,1),m_range=0.4,save=True)
 
     ### SUCCESS RATE VS BEAD SIZE
     ## LIMITED & REGULAR
     # plot_success_rate_vs_bead_size([chainwalk],m_range=np.arange(0,0.5,0.025),save=True)
-    plot_success_rate_vs_bead_size([chainwalk],nsteps_list=[5,10,15],size="volume",m_range=np.arange(0,0.5,0.025),save=True,labelposition="outside",scale="linlog")
+    # plot_success_rate_vs_bead_size([chainwalk],nsteps_list=[5,10,15],size="volume",m_range=np.arange(0,0.5,0.025),save=True,labelposition="outside",scale="linlog")
 
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(1,16,1),show=True,save=True,scale='linlin',r_list=[1,2,3],rho_list=[0.3,0.6,0.9],labelposition="outside")
 
