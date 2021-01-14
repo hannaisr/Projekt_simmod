@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt # For 3D plot
 from mpl_toolkits.mplot3d import Axes3D # For 3D plot
 from scipy.stats import norm # histogram fitting
 from scipy.stats import normaltest
+from scipy import stats as scipy_stats
+
 import math
 import statistics as stats
 
@@ -256,7 +258,7 @@ class Walker():
 
         plt.legend()
         plt.show()
-        return rms,rms_fluc,std_err,step_numbers
+        return
 
     def hist_quotient_length_etedist(self,nsteps=100,nwalks=10,avoid=False,limited=True,forced=False):
         """Plots the quotient between total chain length and end-to-end distance. Returns list of the quotients"""
@@ -356,7 +358,7 @@ class Walker():
         if limited == True:
             ext += ", limited"
         rhos = list(range(1, 5))
-        #rhos.append(4.99)
+        #rhos.append(4.99)#Bad efficiency
         cmap=get_cmap(maxSteps)
 
         for nsteps in range(2,maxSteps+1):
@@ -439,26 +441,85 @@ class Walker():
         if newFig is True:
             plt.show()
 
+    def plot_multiple_bead_size_variations_holdon(self, nwalks=10,nsteps=100):
+        """Plots the relationship between quotient bead size/my or sigma of step length and RMS End-to-End distance or success rate in self-avoiding chains. All chain-types in same plot."""
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.set_xlabel("Bead radius/Expected value of step length")
+        plt.suptitle("End-to-end distance measures vs bead radius \n for " + str(nwalks) + " walks of " + str(nsteps) + "-steps " + self.name)
+        cmap = get_cmap(n=4)
+
+        # Self avoid
+        i = 1
+        qs, rms, rms_fluc, std_err = self.plot_bead_size_variation(nwalks=nwalks,nsteps=nsteps,limited=False, forced=False,newFig=False)
+        ax.plot(qs, rms, label="Self avoiding", color=cmap(i))
+        ax.plot(qs, rms_fluc, color=cmap(i))
+        ax.plot(qs, std_err, color=cmap(i))
+
+        # Self avoid:limited
+        i = 2
+        qs, rms, rms_fluc, std_err = self.plot_bead_size_variation(nwalks=nwalks,nsteps=nsteps,limited=True, forced=False,newFig=False)
+        ax.plot(qs, rms, label="Self avoiding: limited", color=cmap(i))
+        ax.plot(qs, rms_fluc, color=cmap(i))
+        ax.plot(qs, std_err, color=cmap(i))
+
+        # Self avoid:forced
+        i = 3
+        qs, rms, rms_fluc, std_err = self.plot_bead_size_variation(nwalks=nwalks,nsteps=nsteps,limited=True, forced=True,newFig=False)
+        ax.plot(qs, rms, label="Self avoiding: forced", color=cmap(i))
+        ax.plot(qs, rms_fluc, color=cmap(i))
+        ax.plot(qs, std_err, color=cmap(i))
+
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+        textstr = "RMS"
+        # place a text box in upper left in axes coords
+        ax.text(0.90, 0.95, textstr, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', bbox=props)
+        textstr = "RMS\nfluctuation"
+        # place a text box in upper left in axes coords
+        ax.text(0.90, 0.3, textstr, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', bbox=props)
+        textstr = "Standard error\nestimate"
+        # place a text box in upper left in axes coords
+        ax.text(0.90, 0.1, textstr, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', bbox=props)
+
+        plt.legend()
+        plt.show()
+        return
+
     def normplot(self,nsteps=100,nwalks=10,avoid=False,limited=True,forced=False):
+        """Tests adherence to normal distribution"""
         etedistlist,l = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,forced=forced)
 
         # Calculate quantiles and least-square-fit curve
-        (quantiles, values), (slope, intercept, r) = stats.probplot(etedistlist, dist='norm')
+        (quantiles, values), (slope, intercept, r) = scipy_stats.probplot(etedistlist, dist='norm')
 
         # plot results
         plt.plot(values, quantiles, 'ob')
         plt.plot(quantiles * slope + intercept, quantiles, 'r')
+        plt.xlabel("End-to-end distance")
+        plt.ylabel("Quantiles")
 
         # define ticks
         ticks_perc = [1, 5, 10, 20, 50, 80, 90, 95, 99]
 
         # transfrom them from precentile to cumulative density
-        ticks_quan = [stats.norm.ppf(i / 100.) for i in ticks_perc]
+        ticks_quan = [scipy_stats.norm.ppf(i / 100.) for i in ticks_perc]
 
         # assign new ticks
         plt.yticks(ticks_quan, ticks_perc)
 
         # show plot
+        ext = ", r=" +str(self.rho0)
+        if avoid==True:
+            ext+=", self-avoiding"
+            if limited == True:
+                ext += ", limited"
+            if forced == True:
+                ext += ", forced"
+
+        plt.suptitle("Normal distribution-fit of End-to-end distance \n for " + str(nwalks) + " walks of " +str(nsteps) +" steps for "+ self.name + ext)
         plt.grid()
         plt.show()
 
@@ -522,18 +583,12 @@ class Freely_jointed_chain(Walker):
             theta_back = np.pi-self.last_direction[0]
             phi_back = np.pi+self.last_direction[1]
 
-            print("theta_back",theta_back)
-            print("phi_back", phi_back)
-
             ###---Suggestion---###
             #In local coordinate system with "going back" vector as z axis:
             #Generate new bead center
-            alpha = np.arccos((self.r ** 2 + self.last_r ** 2 - self.visited_points[-2][3] ** 2) / (2 * self.r * self.last_r))
+            alpha = np.arccos((self.r ** 2 + self.last_r ** 2 - (2*self.visited_points[-2][3]) ** 2) / (2 * self.r * self.last_r))
             theta = rnd.uniform(alpha, np.pi)
             phi = rnd.uniform(0, 2 * np.pi)
-            print('alfa',alpha)
-            print('theta',theta)
-            print('phi',phi)
 
             #Translate bead center position into global coordinate system.
             # First: define the local coordinate system in terms of the global
@@ -545,10 +600,8 @@ class Freely_jointed_chain(Walker):
             current_pos = [current_pos[i] + current_pos_origo[i] for i in range(3)]
             current_pos.append(rho)
 
-            vector_length = sum([current_pos[i]**2 for i in range(3)])
+            vector_length = np.sqrt(sum([current_pos[i]**2 for i in range(3)]))
             self.last_direction = [np.arccos(current_pos[2]/ vector_length),np.arctan(current_pos[1] / current_pos[0])]
-            print('current pos',current_pos)
-            print('vector length', vector_length)
             ###---End of Suggestion---###
         else:
             self.last_direction = [theta,phi]
@@ -578,9 +631,8 @@ class Freely_jointed_chain(Walker):
         # TODO Implement method for avoiding previous _paths_, not just previous positions.
 
 class Reptation_walker(Grid_walker):
-    origin = [0,0,0]
-
     """Reptation algorithm to generate SAWs. Algoritm on hiskp.uni-bonn... pg. 4"""
+    origin = [0,0,0]
     def __init__(self,nsteps=100,name='Reptation walker'):
         # Generate a basis self-avoiding walk
         self.gridwalk = Grid_walker()
@@ -1000,24 +1052,25 @@ def plot_success_rate_vs_r(instances,nsteps=10,limited=True,bothLimitedAndNot=Tr
 
 def main():
     gridwalk = Grid_walker()
-    #I PDF:
+    #-- I PDF:
+    #-RMS measures:
     # gridwalk.plot_multiple_end_to_end_distances(nwalks=50,avoid=False,limited=False,forced=False)
     # gridwalk.plot_multiple_end_to_end_distances(nwalks=1000, avoid=True,limited=False,forced=False)
     # gridwalk.plot_multiple_end_to_end_distances(avoid=True,limited=True,forced=False,nwalks=50)
     # gridwalk.plot_multiple_end_to_end_distances(avoid=True, limited=True, forced=True, nwalks=50)
+    #-RMS measures: self avoiding options on same plot
     # gridwalk.plot_success_rate_vs_nsteps(limited=False)
-    # gridwalk.plot_success_rate_vs_nsteps(limited=True)
+    #-Normplot
     # gridwalk.normplot(nwalks=100,avoid=True)
-    #gridwalk.plot_multiple_end_to_end_distances_holdon(nwalks=1000)
 
-
-    # print(gridwalk.get_multiple_end_to_end_distances(nwalks=10,avoid=False))
+    #--Not in PDF
+    #-Single walk:
     # gridwalk.walk_without_avoid(nsteps=100,limited=False)
     # gridwalk.walk_with_self_avoid(nsteps=50,limited=True)
     # gridwalk.plot_the_walk(beads=False)
     # print(gridwalk.get_success_rate(nsteps=10,limited=True))
     # print(gridwalk.get_success_rate(nsteps=10,limited=False))
-    # gridwalk.plot_success_rate_vs_nsteps(limited=False)
+    #-ETE distance histogram
     # gridwalk.hist_quotient_length_etedist(nwalks=1000)
     # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False,forced=True)
     # gridwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=True)
@@ -1026,42 +1079,35 @@ def main():
     # gridwalk.plot_success_rate_vs_nsteps()
 
     chainwalk = Freely_jointed_chain()
-    #In PDF:
-    # chainwalk.plot_bead_size_variation(nsteps=15, nwalks=1000, limited=False, forced=False)
+    #--In PDF:
+    #-By bead size
+    #chainwalk.plot_bead_size_variation(nsteps=15, nwalks=1000, limited=False, forced=False)
     #chainwalk.plot_bead_size_variation(nsteps=15, nwalks=1000, limited=True, forced=False)
     #chainwalk.plot_bead_size_variation(nsteps=15,nwalks=1000,limited=True,forced=True)
+    #chainwalk.plot_multiple_end_to_end_distances_holdon(nwalks=1000)
 
-    # chainwalk.plot_bead_size_variation(nsteps=15, nwalks=1000, limited=False, forced=False, newFig=False)
-    # chainwalk.plot_bead_size_variation(nsteps=15, nwalks=1000, limited=True, forced=False)
+    #-RMS measures
     #chainwalk.plot_multiple_end_to_end_distances(nwalks=50)
     #chainwalk.plot_multiple_end_to_end_distances(nwalks=50,avoid=True,limited=True,forced=False)
     #chainwalk.plot_multiple_end_to_end_distances(nwalks=1000,avoid=True,limited=False,forced=False)
     #chainwalk.plot_multiple_end_to_end_distances(nwalks=50,avoid=True,limited=True,forced=True)
-    #chainwalk.plot_bead_size_variation(nwalks=50,limited=True,forced=True)
-    #chainwalk.plot_bead_size_variation(nwalks=50,limited=True,forced=False)
-    #chainwalk.plot_bead_size_variation(limited=True,forced=True,success=True)
-    #chainwalk.plot_bead_size_variation(limited=True,forced=False,success=True)
-    #chainwalk.plot_bead_size_variation(limited=False,forced=False,success=True)
+    #-Success rate
     #chainwalk.plot_success_rate_vs_nsteps(limited=False)
     #chainwalk.plot_success_rate_vs_nsteps(limited=True)
-    #chainwalk.plot_multiple_end_to_end_distances_holdon(nwalks=1000)
-
-    #chainwalk.normplot(nwalks=1000)
-    # chainwalk.plot_multiple_end_to_end_distances(nwalks=2,avoid=True)
-    # chainwalk.plot_multiple_end_to_end_distances(nwalks=50,avoid=True,limited=True)
+    #-Single walk
     # chainwalk.walk_without_avoid(nsteps=1000,limited=False)
     # chainwalk.plot_the_walk(beads=False)
-    chainwalk.walk_with_self_avoid(nsteps=20,limited=True)
-    chainwalk.plot_the_walk(beads=True)
+    # chainwalk.walk_with_self_avoid(nsteps=20,limited=True)
+    # chainwalk.plot_the_walk(beads=True)
+    #-Other
     # print(chainwalk.get_success_rate(nsteps=10,limited=True))
     # print(chainwalk.get_success_rate(nsteps=10,limited=False))
     # chainwalk.plot_success_rate_vs_nsteps(limited=True)
+    # chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False)
     # chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False,forced=True)
     # chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=True)
     # chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=True,forced=False)
-    # chainwalk.hist_quotient_length_etedist(nsteps=15,nwalks=1000,avoid=True,limited=False)
     # chainwalk.plot_etedist_parameters_multiple_versions()
-    # chainwalk.plot_success_rate_vs_nsteps()
 
     # dirwalk = Directed_walker()
     # dirwalk.walk_without_avoid(nsteps=1000)
@@ -1092,7 +1138,7 @@ def main():
 
     # chainwalk_stepl_variations.variate_rho = True
     # chainwalk_stepl_variations.walk_with_self_avoid(nsteps=15, limited=True)
-    # chainwalk_stepl_variations.plot_the_walk(beads=False)
+    # chainwalk_stepl_variations.plot_the_walk(beads=True)
     # print(chainwalk_stepl_variations.get_success_rate(nsteps=10,limited=True))
     # print(chainwalk_stepl_variations.get_success_rate(nsteps=10,limited=False))
     # chainwalk_stepl_variations.hist_quotient_length_etedist(nwalks=1000)
@@ -1129,14 +1175,14 @@ def main():
     ### SUCCESS RATE VS BEAD SIZE
     ## LIMITED & REGULAR
     # FJ
-    # plot_success_rate_vs_bead_size([chainwalk],size="radius",limited=True,nsteps_list=np.arange(2,15,3),bothLimitedAndNot=False,show=True,save=True,labelposition="inside")
+    # plot_success_rate_vs_bead_size([chainwalk],size="radius",limited=True,nsteps_list=np.arange(2,15,3),bothLimitedAndNot=False,show=True,save=False,labelposition="inside")
     # plot_success_rate_vs_bead_size([chainwalk],size="radius",limited=False,nsteps_list=np.arange(2,15,3),bothLimitedAndNot=False,show=True,save=True,labelposition="inside")
     # FJ STEPLVAR
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],nsteps_list=10,save=True, labelposition="inside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",nsteps_list=10,save=True,labelposition="outside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,5),m_range=np.arange(0,0.8,0.05),show=True,save=True,labelposition="inside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),save=True,labelposition="inside")
-    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),show=True,save=True,labelposition="outside")
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),show=True,save=False,labelposition="outside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),save=True,labelposition="outside")
 
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(1,16,1),show=True,save=True,scale='linlin',r_list=[1,2,3],rho_list=[0.3,0.6,0.9],labelposition="outside")
@@ -1144,6 +1190,22 @@ def main():
     ## Check if success rate depends on r or just the relation between r and rho
     # plot_success_rate_vs_r([chainwalk],r_range=np.arange(1,30,1),M=[0.2,0.3,0.4],show=True,save=True,scale='linlin')
 
+    ### NORMPLOTS
+    #GRID
+    #gridwalk.normplot(nwalks=100,nsteps=100)
+    #gridwalk.normplot(nwalks=100,nsteps=100,avoid=True,limited=True)
+
+    #GRID STEPL VARIATIONS
+    #grid_walker_stepl_variations.normplot(nwalks=100,nsteps=100)
+    #grid_walker_stepl_variations.normplot(nwalks=100,nsteps=100,avoid=True,limited=True)
+
+    #FJ
+    #chainwalk.normplot(nwalks=100,nsteps=100)
+    #chainwalk.normplot(nwalks=100, nsteps=15,avoid=True,limited=True)
+
+    #FJ STEPL VARIATIONS
+    #chainwalk_stepl_variations.normplot(nwalks=100,nsteps=100)
+    #chainwalk_stepl_variations.normplot(nwalks=100, nsteps=15,avoid=True,limited=True)
 
 
 main()
