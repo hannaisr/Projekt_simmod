@@ -82,6 +82,7 @@ class Walker():
                     # print('Managed to walk',len(self.visited_points)-2,'steps')
                     nfails += 1
                     if nfails >= maxfails:
+                        print("Maximum fails reached")
                         return nfails
                     self.restart()
                     break
@@ -131,12 +132,13 @@ class Walker():
         """Calculates success rate from nsuccessful_walks number of successful walks."""
         nfails = 0
         nsuccess = 0
-        nwalks = 1000
-        while nfails+nsuccess < nwalks:
+        nwalks = 10000
+        while (nfails+nsuccess) < nwalks:
             maxfails = nwalks-(nsuccess+nwalks) # Maximum number of failed attempts before breaking loop of self avoiding walk
-            nfails += self.walk_with_self_avoid(nsteps,limited,maxfails)
+            nfails += self.walk_with_self_avoid(nsteps=nsteps,limited=limited,maxfails=maxfails)
             nsuccess += 1
         nsuccess -= 1 # The last walk probably didn't succeed...
+        print("success:",nsuccess,"fail:",nfails)
         return nsuccess/(nsuccess+nfails)
 
     def get_end_to_end_distance(self):
@@ -452,7 +454,8 @@ class Freely_jointed_chain(Walker):
         # Get walking direction and bead size
         theta = rnd.uniform(0,np.pi)
         phi = rnd.uniform(0,2*np.pi)
-        rho = self.generate_rho()
+        # rho = self.generate_rho()
+        rho = self.rho0
         if limited == True and self.last_direction != 0:
             # Define direction to walk back the same way
             theta_back = np.pi-self.last_direction[0]
@@ -664,7 +667,7 @@ def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linlin',sho
     print("xlists:",xlists)
     print("ylists:",ylists)
     plt.figure()
-    plt.title(str(title),fontsize=16)
+    plt.title(title,fontsize=16)
     plt.xlabel(xlabel,fontsize=14)
     plt.ylabel(ylabel,fontsize=14)
     # Make sure there is enough x-values to plot
@@ -771,7 +774,7 @@ def plot_success_rate_vs_nsteps(instances,limited=True,bothLimitedAndNot=True,ns
         fileName += "lim"
     if limited==False or bothLimitedAndNot==True:
         fileName += "reg"
-    fileName = re.sub('\W+',' ',fileName)+" m" + str(m_range)+" "+str(scale)
+    fileName = re.sub('\W+',' ',fileName)+" m" + str(m_range)+" "+str(scale)+" newSRmethod"
     print("fileName:", fileName)
     plot2D(title,"Number of steps", "Success rate", list(nsteps_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
     return nsteps_range, success_rates
@@ -785,6 +788,7 @@ def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius"
     if bothLimitedAndNot is True:
         limited = True
     volume_list = m_range**3*4/3*np.pi
+    area_list = m_range**2*4*np.pi
 
     # Make plot title
     # title = "Success rate vs bead "+size
@@ -797,6 +801,7 @@ def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius"
         instance.my = 1
         instance.rho = 0.1
         for nsteps in nsteps_list:
+            print(nsteps)
             #  Labels
             if (limited is True):
                 labels_list.append(str(instance.shortname)+", lim, "+str(nsteps)+" steps")
@@ -817,11 +822,13 @@ def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius"
                     SR.append(instance.get_success_rate(nsteps,limited=False))
                     print(m)
                 success_rates.append(SR)
-            print(nsteps)
 
     if size=="volume":
         x_list = list(volume_list)
         xname = "Bead volume"
+    elif size=="area":
+        x_list = list(area_list)
+        xname = "Bead surface area"
     else:
         x_list = list(m_range)
         xname = "Bead radius/step length"
@@ -834,7 +841,7 @@ def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius"
     if limited==False or bothLimitedAndNot==True:
         fileName += "reg"
 
-    fileName = re.sub('\W+',' ',fileName)+" steps"+str(nsteps_list)+" "+str(scale)
+    fileName = re.sub('\W+',' ',fileName)+" steps"+str(nsteps_list)+" "+str(scale)+" newSRmethod"
     print(fileName)
     plot2D(title, xname, "Success rate", x_list, success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
     return m_range, success_rates
@@ -891,7 +898,7 @@ def plot_success_rate_vs_r(instances,nsteps=10,limited=True,bothLimitedAndNot=Tr
     else:
         fileName += " regular "
     print(fileName)
-    fileName = re.sub('\W+',' ',fileName) + " " + str(scale)
+    fileName = re.sub('\W+',' ',fileName) + " " + str(scale)+" newSRmethod"
     print(fileName)
     plot2D(title,"Step length", "Success rate", list(r_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
     return r_range, success_rates
@@ -990,8 +997,8 @@ def main():
     #chainwalk_stepl_variations.plot_bead_size_variation(limited=False, forced=False, success=True)
 
     # chainwalk_stepl_variations.variate_rho = True
-    # chainwalk_stepl_variations.walk_with_self_avoid(nsteps=20, limited=True)
-    # chainwalk_stepl_variations.plot_the_walk(beads=True)
+    # chainwalk_stepl_variations.walk_with_self_avoid(nsteps=15, limited=True)
+    # chainwalk_stepl_variations.plot_the_walk(beads=False)
     # print(chainwalk_stepl_variations.get_success_rate(nsteps=10,limited=True))
     # print(chainwalk_stepl_variations.get_success_rate(nsteps=10,limited=False))
     # chainwalk_stepl_variations.hist_quotient_length_etedist(nwalks=1000)
@@ -1017,7 +1024,7 @@ def main():
     # Regular loglog
     # plot_success_rate_vs_nsteps([gridwalk],limited=False,bothLimitedAndNot=False,nsteps_range=range(0,25,1),show=True,save=True,scale='linlin')
     # Limited loglog
-    # plot_success_rate_vs_nsteps([gridwalk],limited=True,bothLimitedAndNot=False,nsteps_range=range(0,50,1),show=True,save=True,scale='linlin')
+    plot_success_rate_vs_nsteps([gridwalk],limited=True,bothLimitedAndNot=False,nsteps_range=range(0,50,1),show=True,save=False,scale='linlin')
     # FJ
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=False,save=True,scale='linlin')  # Limited is a (somewhat) straight line
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=True,save=True,scale='linlog')   # Regular is a straight line
@@ -1033,10 +1040,10 @@ def main():
     # FJ STEPLVAR
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],nsteps_list=10,save=True, labelposition="inside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",nsteps_list=10,save=True,labelposition="outside")
-    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),show=True,save=True,labelposition="outside")
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),save=True,labelposition="outside")
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),show=True,save=True,labelposition="outside")
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),save=True,labelposition="outside")
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),show=True,save=True,labelposition="inside")
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),save=True,labelposition="inside")
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),show=True,save=True,labelposition="outside")
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),save=True,labelposition="outside")
 
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(1,16,1),show=True,save=True,scale='linlin',r_list=[1,2,3],rho_list=[0.3,0.6,0.9],labelposition="outside")
 
