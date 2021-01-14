@@ -12,7 +12,7 @@ import statistics as stats
 class Walker():
     """Walked positions are stored in a list"""
     # Initiate list of visited points
-    rho0 = 0.4 # size of first bead, the very least 1/2 step length.
+    rho0 = 0.2 # size of first bead, the very least 1/2 step length.
     # Modify generate_rho() to manage method for generating the sizes of the other beads
     origin = [0,0,0,rho0] # position and bead size are stored in list
     visited_points = [origin]
@@ -518,13 +518,15 @@ class Freely_jointed_chain(Walker):
         # rho = self.generate_rho()
         rho = self.rho0
         if limited == True and self.last_direction != 0:
-            alpha = np.arccos((self.r**2+self.last_r**2-self.visited_points[-1][3]**2)/(2*self.r*self.last_r))
+            alpha = np.arccos((self.r**2+self.last_r**2-self.visited_points[-2][3]**2)/(2*self.r*self.last_r))
             # Define direction to walk back the same way
             theta_back = np.pi-self.last_direction[0]
             phi_back = np.pi+self.last_direction[1]
-            while (self.r*np.sin(theta)*np.cos(phi)-self.r*np.sin(theta_back)*np.cos(phi_back))**2+(self.r*np.sin(theta)*np.sin(phi)-self.r*np.sin(theta_back)*np.sin(phi_back))**2+(self.r*np.cos(theta)-self.r*np.cos(theta_back))**2 < (current_pos[3]+rho)**2:
-                theta = rnd.uniform(0,np.pi)
-                phi = rnd.uniform(0,2*np.pi)
+            # while (self.r*np.sin(theta)*np.cos(phi)-self.r*np.sin(theta_back)*np.cos(phi_back))**2+(self.r*np.sin(theta)*np.sin(phi)-self.r*np.sin(theta_back)*np.sin(phi_back))**2+(self.r*np.cos(theta)-self.r*np.cos(theta_back))**2 < (current_pos[3]+rho)**2:
+            theta = rnd.uniform(alpha,np.pi)
+            phi = rnd.uniform(0,2*np.pi)
+            theta += theta_back
+            phi += phi_back
         self.last_direction = [theta,phi]
         # Update the coordinates
         current_pos[0] += self.r*np.sin(theta)*np.cos(phi)  # x
@@ -1019,6 +1021,8 @@ def main():
     #chainwalk.plot_success_rate_vs_nsteps(limited=False)
     #chainwalk.plot_success_rate_vs_nsteps(limited=True)
     #chainwalk.plot_multiple_end_to_end_distances_holdon(nwalks=1000)
+    chainwalk.walk_with_self_avoid(nsteps=10,limited=True)
+    chainwalk.plot_the_walk(beads=True)
 
     #chainwalk.normplot(nwalks=1000)
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=2,avoid=True)
@@ -1108,8 +1112,8 @@ def main():
     # FJ STEPLVAR
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],nsteps_list=10,save=True, labelposition="inside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",nsteps_list=10,save=True,labelposition="outside")
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,5),m_range=np.arange(0,0.8,0.05),show=True,save=True,labelposition="inside")
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),save=True,labelposition="inside")
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,5),m_range=np.arange(0,0.8,0.05),show=True,save=True,labelposition="inside")
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),save=True,labelposition="inside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),show=True,save=True,labelposition="outside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),save=True,labelposition="outside")
 
