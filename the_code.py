@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt # For 3D plot
 from mpl_toolkits.mplot3d import Axes3D # For 3D plot
 from scipy.stats import norm # histogram fitting
 from scipy.stats import normaltest
+import math
 
 
 class Walker():
@@ -36,7 +37,7 @@ class Walker():
         for i in range(nsteps):
             self.walk_one_step(limited)
 
-    def walk_with_self_avoid_forced(self,nsteps=100,limited=True):
+    def walk_with_self_avoid_forced(self,nsteps=100,limited=True,maxfails=math.inf):
         """Walk nsteps steps of self-avoiding random walk, redoing each step until it is successful or it has failed tries_per_step times."""
 
         tries_per_step = 100 # Maximum number of times to try again if the step is unacceptable
@@ -62,7 +63,7 @@ class Walker():
                     break
         # print('Managed to walk', len(self.visited_points) - 1, 'steps')
 
-    def walk_with_self_avoid(self,nsteps=100,limited=True):
+    def walk_with_self_avoid(self,nsteps=100,limited=True,maxfails=math.inf):
         """Walk nsteps steps of self-avoiding random walk. Returns the number of walks that failed."""
 
         nfails = 0
@@ -80,6 +81,8 @@ class Walker():
                 if try_again is True:
                     # print('Managed to walk',len(self.visited_points)-2,'steps')
                     nfails += 1
+                    if nfails >= maxfails:
+                        return nfails
                     self.restart()
                     break
         # print('Managed to walk', len(self.visited_points) - 1, 'steps')
@@ -126,14 +129,15 @@ class Walker():
 
     def get_success_rate(self,nsteps=20,limited=True):
         """Calculates success rate from nsuccessful_walks number of successful walks."""
-        total_fails = 0
-        nsuccessful_walks = 1000
-        for i in range(nsuccessful_walks):
-            total_fails += self.walk_with_self_avoid(nsteps,limited)
-        if total_fails <= 1.5*nsuccessful_walks:    # Do it all again if the success rate is large
-            for i in range(nsuccessful_walks):
-                total_fails += self.walk_with_self_avoid(nsteps,limited)
-        return nsuccessful_walks/(nsuccessful_walks+total_fails)
+        nfails = 0
+        nsuccess = 0
+        nwalks = 1000
+        while nfails+nsuccess < nwalks:
+            maxfails = nwalks-(nsuccess+nwalks) # Maximum number of failed attempts before breaking loop of self avoiding walk
+            nfails += self.walk_with_self_avoid(nsteps,limited,maxfails)
+            nsuccess += 1
+        nsuccess -= 1 # The last walk probably didn't succeed...
+        return nsuccess/(nsuccess+nfails)
 
     def get_end_to_end_distance(self):
         """Calculate end-to-end distance of already walked walk."""
@@ -711,9 +715,12 @@ def plot_success_rate_vs_nsteps(instances,limited=True,bothLimitedAndNot=True,ns
         m_range = [m_range]
 
     # Make plot title and fileName
-    title = "Success rate vs number of steps"
+    # title = "Success rate vs number of steps"
+    title=None
     fileName = "FJ vs nsteps"
+    fj = False
     if any(shortname=="FJ" for shortname in [instance.shortname for instance in instances]):
+        fj = True
         title += ", rho/r=" + str(m_range)
         fileName += " rhor" + str(m_range)
 
@@ -723,19 +730,33 @@ def plot_success_rate_vs_nsteps(instances,limited=True,bothLimitedAndNot=True,ns
         # Make sure the initial values are correct
         instance.my = 1
         instance.sigma = 0.1
+
         for rho in m_range:
             instance.rho0 = rho
+
+            # Label
+            label = str(instance.shortname)
             if (limited is True):
-                labels_list.append(str(instance.shortname)+", limited, rho/r="+str(rho))
-            else:
-                labels_list.append(str(instance.shortname)+", rho/r="+str(rho))
+                label += ", limited"
+            if fj is True:
+                label += ", rho/r="+str(rho)
+            labels_list.append(label)
+
+            # Success rate
             SR = []
             for nsteps in nsteps_range:
                 SR.append(instance.get_success_rate(nsteps,limited))
                 print(nsteps)
             success_rates.append(SR)
+
             if bothLimitedAndNot is True:
-                labels_list.append(str(instance.shortname)+", regular, rho/r="+str(rho))
+                # Label
+                label = str(instance.shortname)+", regular"
+                if fj is True:
+                    label += ", rho/r="+str(rho)
+                labels_list.append(label)
+
+                # Success rate
                 SR = []
                 for nsteps in nsteps_range:
                     SR.append(instance.get_success_rate(nsteps,limited=False))
@@ -746,25 +767,28 @@ def plot_success_rate_vs_nsteps(instances,limited=True,bothLimitedAndNot=True,ns
     # Plot
     for instance in instances:
         fileName += " " + instance.shortname
+    if limited==True:
+        fileName += "lim"
+    if limited==False or bothLimitedAndNot==True:
+        fileName += "reg"
     fileName = re.sub('\W+',' ',fileName)+" m" + str(m_range)+" "+str(scale)
     print("fileName:", fileName)
     plot2D(title,"Number of steps", "Success rate", list(nsteps_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
     return nsteps_range, success_rates
 
-def plot_success_rate_vs_bead_size(instances,nsteps_range=[5,10,15],size="radius",limited=True,bothLimitedAndNot=True,m_range=np.arange(0,0.5,0.025),show=True,save=False,scale='linlin',labelposition="outside"):
+def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius",limited=True,bothLimitedAndNot=True,m_range=np.arange(0,0.5,0.025),show=True,save=False,scale='linlin',labelposition="outside"):
     """Plots success rate vs bead size for one or more instances. Also compares limited with not limited if bothLimitedAndNot is True.
     nsteps is the number of steps in each walk
     m = rho/r"""
     instances = list(instances) # require list
     success_rates = []
-    if type(nsteps_range)!= list:
-        nsteps_range=[nsteps_range]
     if bothLimitedAndNot is True:
         limited = True
     volume_list = m_range**3*4/3*np.pi
 
     # Make plot title
-    title = "Success rate vs bead "+size
+    # title = "Success rate vs bead "+size
+    title=None
     fileName = "SR_vs_bead"+size
 
     # Make labels and store success rates
@@ -772,7 +796,7 @@ def plot_success_rate_vs_bead_size(instances,nsteps_range=[5,10,15],size="radius
     for instance in instances:
         instance.my = 1
         instance.rho = 0.1
-        for nsteps in nsteps_range:
+        for nsteps in nsteps_list:
             #  Labels
             if (limited is True):
                 labels_list.append(str(instance.shortname)+", lim, "+str(nsteps)+" steps")
@@ -793,7 +817,7 @@ def plot_success_rate_vs_bead_size(instances,nsteps_range=[5,10,15],size="radius
                     SR.append(instance.get_success_rate(nsteps,limited=False))
                     print(m)
                 success_rates.append(SR)
-            print(instance.name)
+            print(nsteps)
 
     if size=="volume":
         x_list = list(volume_list)
@@ -804,9 +828,13 @@ def plot_success_rate_vs_bead_size(instances,nsteps_range=[5,10,15],size="radius
 
     # Plot
     for instance in instances:
-        fileName += " " + instance.shortname
-    print(fileName)
-    fileName = re.sub('\W+',' ',fileName)+" r"+str(instances[0].r)+" steps"+str(nsteps_range)+" "+str(scale)
+        fileName += " " + instance.shortname + " "
+    if limited==True:
+        fileName += "lim"
+    if limited==False or bothLimitedAndNot==True:
+        fileName += "reg"
+
+    fileName = re.sub('\W+',' ',fileName)+" steps"+str(nsteps_list)+" "+str(scale)
     print(fileName)
     plot2D(title, xname, "Success rate", x_list, success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
     return m_range, success_rates
@@ -986,6 +1014,10 @@ def main():
     # plot_success_rate_vs_nsteps([gridwalk],nsteps_range=range(0,25,1),show=False,save=True,scale='linlin')   # Limited quite straight
     # plot_success_rate_vs_nsteps([gridwalk],nsteps_range=range(0,25,1),show=False,save=True,scale='linlog')   # Both quite straight
     # plot_success_rate_vs_nsteps([gridwalk],nsteps_range=range(0,25,1),show=True,save=True,scale='loglog')    # Both strange
+    # Regular loglog
+    # plot_success_rate_vs_nsteps([gridwalk],limited=False,bothLimitedAndNot=False,nsteps_range=range(0,25,1),show=True,save=True,scale='linlin')
+    # Limited loglog
+    # plot_success_rate_vs_nsteps([gridwalk],limited=True,bothLimitedAndNot=False,nsteps_range=range(0,50,1),show=True,save=True,scale='linlin')
     # FJ
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=False,save=True,scale='linlin')  # Limited is a (somewhat) straight line
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=True,save=True,scale='linlog')   # Regular is a straight line
@@ -997,12 +1029,14 @@ def main():
     ## LIMITED & REGULAR
     # FJ
     # plot_success_rate_vs_bead_size([chainwalk],m_range=np.arange(0,0.5,0.025),save=True)
-    # plot_success_rate_vs_bead_size([chainwalk],nsteps_range=[5,10,15],size="volume",m_range=np.arange(0,0.5,0.025),save=True,labelposition="outside",scale="linlog")
+    # plot_success_rate_vs_bead_size([chainwalk],nsteps_list=[5,10,15],size="volume",m_range=np.arange(0,0.5,0.025),save=True,labelposition="outside",scale="linlog")
     # FJ STEPLVAR
-    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],nsteps_range=10,save=True, labelposition="inside")
-    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",nsteps_range=10,save=True,labelposition="outside")
-    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",limited=True, bothLimitedAndNot=False,nsteps_range=[3,5,7,9,11,13],save=True,labelposition="outside")
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",limited=False, bothLimitedAndNot=False,nsteps_range=[3,5,7,9,11,13],save=True,labelposition="inside")
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],nsteps_list=10,save=True, labelposition="inside")
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",nsteps_list=10,save=True,labelposition="outside")
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),show=True,save=True,labelposition="outside")
+    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),save=True,labelposition="outside")
+    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),show=True,save=True,labelposition="outside")
+    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),save=True,labelposition="outside")
 
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(1,16,1),show=True,save=True,scale='linlin',r_list=[1,2,3],rho_list=[0.3,0.6,0.9],labelposition="outside")
 
