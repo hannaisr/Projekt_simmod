@@ -6,7 +6,7 @@ from mpl_toolkits.mplot3d import Axes3D # For 3D plot
 from scipy.stats import norm # histogram fitting
 from scipy.stats import normaltest
 import math
-from statistics import stdev
+import statistics as stats
 
 
 class Walker():
@@ -83,7 +83,7 @@ class Walker():
                     # print('Managed to walk',len(self.visited_points)-2,'steps')
                     nfails += 1
                     if nfails >= maxfails:
-                        # print("Maximum fails reached")
+                        print("Maximum fails reached")
                         return nfails
                     self.restart()
                     break
@@ -133,7 +133,7 @@ class Walker():
         """Calculates success rate from nsuccessful_walks number of successful walks."""
         nfails = 0
         nsuccess = 0
-        nwalks = 10000
+        nwalks = 1000
         while (nfails+nsuccess) < nwalks:
             maxfails = nwalks-(nsuccess+nfails) # Maximum number of failed attempts before breaking loop of self avoiding walk
             nfails += self.walk_with_self_avoid(nsteps=nsteps,limited=limited,maxfails=maxfails)
@@ -498,7 +498,7 @@ class Grid_walker(Walker):
         #     return True
         if self.visited_points[0][:3] == self.visited_points[-1][:3]:
             return True
-        elif any(t == self.visited_points[-1][:3] for t in [i[:3] for i in self. visited_points[:-1]]):
+        elif any(t == self.visited_points[-1][:3] for t in [i[:3] for i in self. visited_points[:-2]]):
             return True
         return False
 
@@ -537,7 +537,7 @@ class Freely_jointed_chain(Walker):
         #The distance between successive sphere centres is self.r. Interception between any two spheres occurs if their centres are less apart than their diameter
         # if self.r < 2*self.rho:
         #     return True
-        for point in self.visited_points[:-1]:
+        for point in self.visited_points[:-2]:
             r_centres = np.sqrt((point[0] - cp[0])**2 + (point[1] - cp[1])**2 + (point[2] - cp[2])**2)
             if r_centres < point[3]+cp[3]:
                 # Self-intercept - needs to restart the process
@@ -832,12 +832,12 @@ def plot_success_rate_vs_nsteps(instances,limited=True,bothLimitedAndNot=True,ns
         fileName += "lim"
     if limited==False or bothLimitedAndNot==True:
         fileName += "reg"
-    fileName = re.sub('\W+',' ',fileName)+" m" + str(m_range)+" "+str(scale)+" newSRmethod"
+    fileName = re.sub('\W+',' ',fileName)+" m" + str(m_range)+" "+str(scale)+" nocollisionfromsteplength"
     print("fileName:", fileName)
     plot2D(title,"Number of steps", "Success rate", list(nsteps_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
     return nsteps_range, success_rates
 
-def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius",limited=True,bothLimitedAndNot=True,m_range=np.arange(0,0.5,0.025),show=True,save=False,scale='linlin',labelposition="outside"):
+def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius",limited=True,bothLimitedAndNot=True,m_range=np.arange(0,1.0,0.05),show=True,save=False,scale='linlin',labelposition="outside"):
     """Plots success rate vs bead size for one or more instances. Also compares limited with not limited if bothLimitedAndNot is True.
     nsteps is the number of steps in each walk
     m = rho/r"""
@@ -899,7 +899,7 @@ def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius"
     if limited==False or bothLimitedAndNot==True:
         fileName += "reg"
 
-    fileName = re.sub('\W+',' ',fileName)+" steps"+str(nsteps_list)+" "+str(scale)+" newSRmethod"
+    fileName = re.sub('\W+',' ',fileName)+" steps"+str(nsteps_list)+" "+str(scale)+" nocollisionfromsteplength"
     print(fileName)
     plot2D(title, xname, "Success rate", x_list, success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
     return m_range, success_rates
@@ -972,7 +972,7 @@ def main():
     # gridwalk.plot_success_rate_vs_nsteps(limited=False)
     # gridwalk.plot_success_rate_vs_nsteps(limited=True)
     # gridwalk.normplot(nwalks=100,avoid=True)
-    # gridwalk.plot_multiple_end_to_end_distances_holdon(nwalks=1000)
+    #gridwalk.plot_multiple_end_to_end_distances_holdon(nwalks=1000)
 
 
     # print(gridwalk.get_multiple_end_to_end_distances(nwalks=10,avoid=False))
@@ -1065,7 +1065,7 @@ def main():
     # chainwalk_stepl_variations.plot_etedist_parameters_multiple_versions()
     # chainwalk.plot_bead_size_variation(limited=True,forced=True,success=True)
     # chainwalk_stepl_variations.normplot(nwalks=1000)
-    chainwalk_stepl_variations.plot_distance_between(maxSteps=10,avoid=True,limited=True,nwalks=1000,whatiwant="mean",spec="max")
+
 
     reptationwalk = Reptation_walker(nsteps=10)
     #reptationwalk.walk_with_self_avoid()
@@ -1093,12 +1093,12 @@ def main():
     ### SUCCESS RATE VS BEAD SIZE
     ## LIMITED & REGULAR
     # FJ
-    # plot_success_rate_vs_bead_size([chainwalk],m_range=np.arange(0,0.5,0.025),save=True)
-    # plot_success_rate_vs_bead_size([chainwalk],nsteps_list=[5,10,15],size="volume",m_range=np.arange(0,0.5,0.025),save=True,labelposition="outside",scale="linlog")
+    # plot_success_rate_vs_bead_size([chainwalk],size="radius",limited=True,nsteps_list=np.arange(2,15,3),bothLimitedAndNot=False,show=True,save=True,labelposition="inside")
+    # plot_success_rate_vs_bead_size([chainwalk],size="radius",limited=False,nsteps_list=np.arange(2,15,3),bothLimitedAndNot=False,show=True,save=True,labelposition="inside")
     # FJ STEPLVAR
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],nsteps_list=10,save=True, labelposition="inside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",nsteps_list=10,save=True,labelposition="outside")
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),show=True,save=True,labelposition="inside")
+    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,5),m_range=np.arange(0,0.8,0.05),show=True,save=True,labelposition="inside")
     plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),save=True,labelposition="inside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),show=True,save=True,labelposition="outside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),save=True,labelposition="outside")
@@ -1107,7 +1107,6 @@ def main():
 
     ## Check if success rate depends on r or just the relation between r and rho
     # plot_success_rate_vs_r([chainwalk],r_range=np.arange(1,30,1),M=[0.2,0.3,0.4],show=True,save=True,scale='linlin')
-
 
 
 
