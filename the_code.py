@@ -312,17 +312,21 @@ class Walker():
         plot2D("Normal distribution p-value \n for "+str(self.name),"Chain length", "P-value", [lenlist1,lenlist2,lenlist3,lenlist4],[pval1,pval2,pval3,pval4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"],show=False)
         plt.show()
 
-    def get_maximum_distance(self):
-        """Calculate maximum distance between points in walked walk"""
-        maxdist = 0
+    def get_spec_distance(self,spec='max'):
+        """Calculate maximum distance between points in walked walk
+        spec can be 'max', 'median' or 'mean'"""
+        dists = []
         counter = 0
         for i in self.visited_points:
             counter += 1
             for j in self.visited_points[counter:]:
-                dist = (i[0]-j[0])**2+(i[1]-j[1])**2+(i[2]-j[2])**2
-                if dist > maxdist:
-                    maxdist = dist
-        return np.sqrt(maxdist)
+                dists.append(np.sqrt((i[0]-j[0])**2+(i[1]-j[1])**2+(i[2]-j[2])**2))
+        if spec == 'max':
+            return max(dists)
+        if spec == 'mean':
+            return mean(dists)
+        if spec == 'median':
+            return median(dists)
 
     def get_mean_maximum_distance(self,nsteps=15,avoid=False,limited=False,nwalks=1000,whatiwant="mean"):
         """Calculate mean maximum difference for specific walk.
@@ -340,7 +344,6 @@ class Walker():
             return mean(maxdist_list)
         if whatiwant=="stdev":
             return stdev(maxdist_list)
-
 
     def plot_success_rate_vs_nsteps(self,step_numbers=range(2,25,2),limited=True):
         """Gets success rate to number of steps in walk."""
