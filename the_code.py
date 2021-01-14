@@ -25,6 +25,7 @@ class Walker():
 
     # Store last walking direction
     last_direction = 0
+    last_r = my
 
     variate_rho=False
 
@@ -75,9 +76,10 @@ class Walker():
         while try_again is True:
             try_again = False
             for i in range(nsteps):
-                self.walk_one_step(limited)
-                # Test if the site is already occupied.
-                try_again=self.test_avoid()
+                try_again = self.walk_one_step(limited)
+                if try_again is False:
+                    # Test if the site is already occupied.
+                    try_again=self.test_avoid()
                 # In case of self interception, break attempt immediately
                 if try_again is True:
                     # print('Managed to walk',len(self.visited_points)-2,'steps')
@@ -491,6 +493,7 @@ class Grid_walker(Walker):
         # Update list of visited points
         self.visited_points.append(current_pos)
         self.length += self.r
+        return False
 
     def test_avoid(self):
         """Test if latest site is already occupied. Return True if so, False if not."""
@@ -530,6 +533,8 @@ class Freely_jointed_chain(Walker):
         # Update list of visited points
         self.visited_points.append(current_pos)
         self.length += self.r
+        self.last_r = self.r
+        return False
 
     def test_avoid(self):
         """Test if latest site is already occupied - continuous case"""
@@ -676,7 +681,11 @@ class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
             self.r = rnd.normalvariate(self.my,self.sigma)  # Varation in step length
         elif self.distribution == "exp":
             self.r = rnd.expovariate(1/self.my)  # Varation in step length
-        Freely_jointed_chain.walk_one_step(self,limited)
+        if self.r+self.last_r <= 2*self.rho0:
+            print(self.r,self.last_r)
+            self.last_r = self.r
+            return True
+        return Freely_jointed_chain.walk_one_step(self,limited)
 
 def reptation_plot_multiple_end_to_end_distances(nwalks=10,avoid=False,limited=False):
     """Plots end-to-end distance RMS, RMS fluctuation and standard error estimate for nwalks walks by chain length"""
