@@ -132,12 +132,12 @@ class Walker():
         """Calculates success rate from nsuccessful_walks number of successful walks."""
         nfails = 0
         nsuccess = 0
-        nwalks = 10000
+        nwalks = 1000
         while (nfails+nsuccess) < nwalks:
-            maxfails = nwalks-(nsuccess+nwalks) # Maximum number of failed attempts before breaking loop of self avoiding walk
+            maxfails = nwalks-(nsuccess+nfails) # Maximum number of failed attempts before breaking loop of self avoiding walk
             nfails += self.walk_with_self_avoid(nsteps=nsteps,limited=limited,maxfails=maxfails)
-            nsuccess += 1
-        nsuccess -= 1 # The last walk probably didn't succeed...
+            if nfails+nsuccess < nwalks:
+                nsuccess += 1
         print("success:",nsuccess,"fail:",nfails)
         return nsuccess/(nsuccess+nfails)
 
