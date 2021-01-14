@@ -6,6 +6,7 @@ from mpl_toolkits.mplot3d import Axes3D # For 3D plot
 from scipy.stats import norm # histogram fitting
 from scipy.stats import normaltest
 import math
+from statistics import stdev
 
 
 class Walker():
@@ -82,7 +83,7 @@ class Walker():
                     # print('Managed to walk',len(self.visited_points)-2,'steps')
                     nfails += 1
                     if nfails >= maxfails:
-                        print("Maximum fails reached")
+                        # print("Maximum fails reached")
                         return nfails
                     self.restart()
                     break
@@ -132,13 +133,12 @@ class Walker():
         """Calculates success rate from nsuccessful_walks number of successful walks."""
         nfails = 0
         nsuccess = 0
-        nwalks = 1000
+        nwalks = 10000
         while (nfails+nsuccess) < nwalks:
             maxfails = nwalks-(nsuccess+nfails) # Maximum number of failed attempts before breaking loop of self avoiding walk
             nfails += self.walk_with_self_avoid(nsteps=nsteps,limited=limited,maxfails=maxfails)
             if nfails+nsuccess < nwalks:
                 nsuccess += 1
-        print("success:",nsuccess,"fail:",nfails)
         return nsuccess/(nsuccess+nfails)
 
     def get_end_to_end_distance(self):
@@ -311,6 +311,36 @@ class Walker():
         plot2D("End-to-end distance sigma vs chain length\n for "+str(self.name),"Chain length", "End-to-end distance sigma", [lenlist1,lenlist2,lenlist3,lenlist4],[sigma1,sigma2,sigma3,sigma4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"],show=False,scale='log')
         plot2D("Normal distribution p-value \n for "+str(self.name),"Chain length", "P-value", [lenlist1,lenlist2,lenlist3,lenlist4],[pval1,pval2,pval3,pval4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"],show=False)
         plt.show()
+
+    def get_maximum_distance(self):
+        """Calculate maximum distance between points in walked walk"""
+        maxdist = 0
+        counter = 0
+        for i in self.visited_points:
+            counter += 1
+            for j in self.visited_points[counter:]:
+                dist = (i[0]-j[0])**2+(i[1]-j[1])**2+(i[2]-j[2])**2
+                if dist > maxdist:
+                    maxdist = dist
+        return np.sqrt(maxdist)
+
+    def get_mean_maximum_distance(self,nsteps=15,avoid=False,limited=False,nwalks=1000,whatiwant="mean"):
+        """Calculate mean maximum difference for specific walk.
+        Possible options for whatiwant:
+        'mean' (returns mean value)
+        'stdev' (returns standard deviation)"""
+        maxdist_list = []
+        for i in range(nwalks):
+            if avoid is True:
+                self.walk_with_self_avoid(limited=limited,nsteps=nsteps)
+            else:
+                self.walk_without_avoid(limited=limited,nsteps=nsteps)
+            maxdist.append(self.get_maximum_distance())
+        if whatiwant=="mean":
+            return mean(maxdist_list)
+        if whatiwant=="stdev":
+            return stdev(maxdist_list)
+
 
     def plot_success_rate_vs_nsteps(self,step_numbers=range(2,25,2),limited=True):
         """Gets success rate to number of steps in walk."""
@@ -1024,7 +1054,7 @@ def main():
     # Regular loglog
     # plot_success_rate_vs_nsteps([gridwalk],limited=False,bothLimitedAndNot=False,nsteps_range=range(0,25,1),show=True,save=True,scale='linlin')
     # Limited loglog
-    plot_success_rate_vs_nsteps([gridwalk],limited=True,bothLimitedAndNot=False,nsteps_range=range(0,50,1),show=True,save=False,scale='linlin')
+    # plot_success_rate_vs_nsteps([gridwalk],limited=True,bothLimitedAndNot=False,nsteps_range=range(0,50,1),show=True,save=False,scale='linlin')
     # FJ
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=False,save=True,scale='linlin')  # Limited is a (somewhat) straight line
     # plot_success_rate_vs_nsteps([chainwalk],nsteps_range=range(0,16,1),show=True,save=True,scale='linlog')   # Regular is a straight line
@@ -1040,8 +1070,8 @@ def main():
     # FJ STEPLVAR
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],nsteps_list=10,save=True, labelposition="inside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",nsteps_list=10,save=True,labelposition="outside")
-    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),show=True,save=True,labelposition="inside")
-    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),save=True,labelposition="inside")
+    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),show=True,save=True,labelposition="inside")
+    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),save=True,labelposition="inside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),show=True,save=True,labelposition="outside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),save=True,labelposition="outside")
 
