@@ -521,6 +521,26 @@ class Freely_jointed_chain(Walker):
             # Define direction to walk back the same way
             theta_back = np.pi-self.last_direction[0]
             phi_back = np.pi+self.last_direction[1]
+
+            ###---Suggestion---###
+            #In local coordinate system with "going back" vector as z axis:
+            #Generate new bead center
+            alpha = np.arccos((self.r ** 2 + self.last_r ** 2 - self.visited_points[-2][3] ** 2) / (2 * self.r * self.last_r))
+            theta = rnd.uniform(alpha, np.pi)
+            phi = rnd.uniform(0, 2 * np.pi)
+            #Translate bead center position into global coordinate system.
+            # First: define the local coordinate system in terms of the global
+            z_hat = (self.visited_points[-2][:3]-self.visited_points[-1][:3])/self.last_r #vector between the most recent two beads
+            a=z_hat[0]
+            b=z_hat[1]
+            c=z_hat[2]
+            x_hat = [b,-a,0]*(1/np.sqrt(a**2+b**2)) #Orthogonal to z_hat
+            y_hat = [-c*a,b*c,a**2+b**2]*(1/(np.sqrt(a*c)**2+(b*c)**2+(a**2+b**2)**2)) #Orthogonal to z_hat, x_hat
+            #Second: project the bead center position onto the global axes and translate it to origo
+            current_pos_origo = [np.cos(theta)*z_hat[i]+np.sin(theta)*np.cos(phi)*x_hat[i]+np.sin(theta)*np.sin(phi)*y_hat[i] for i in range(3)]
+            current_pos = [current_pos[i] + current_pos_origo[i] for i in range(3)]
+            current_pos.append(rho)
+            ###---End of Suggestion---###
             while (self.r*np.sin(theta)*np.cos(phi)-self.r*np.sin(theta_back)*np.cos(phi_back))**2+(self.r*np.sin(theta)*np.sin(phi)-self.r*np.sin(theta_back)*np.sin(phi_back))**2+(self.r*np.cos(theta)-self.r*np.cos(theta_back))**2 < (current_pos[3]+rho)**2:
                 theta = rnd.uniform(0,np.pi)
                 phi = rnd.uniform(0,2*np.pi)
