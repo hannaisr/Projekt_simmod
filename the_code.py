@@ -6,7 +6,7 @@ from mpl_toolkits.mplot3d import Axes3D # For 3D plot
 from scipy.stats import norm # histogram fitting
 from scipy.stats import normaltest
 import math
-from statistics import stdev
+import statistics as stats
 
 
 class Walker():
@@ -313,7 +313,7 @@ class Walker():
         plt.show()
 
     def get_spec_distance(self,spec='max'):
-        """Calculate maximum distance between points in walked walk
+        """Calculate 'specified' distance between points in walked walk
         spec can be 'max', 'median' or 'mean'"""
         dists = []
         counter = 0
@@ -324,11 +324,11 @@ class Walker():
         if spec == 'max':
             return max(dists)
         if spec == 'mean':
-            return mean(dists)
+            return stats.mean(dists)
         if spec == 'median':
-            return median(dists)
+            return stats.median(dists)
 
-    def get_mean_maximum_distance(self,nsteps=15,avoid=False,limited=False,nwalks=1000,whatiwant="mean"):
+    def get_mean_spec_distance(self,spec="max",nsteps=15,avoid=False,limited=False,nwalks=1000,whatiwant="mean"):
         """Calculate mean maximum difference for specific walk.
         Possible options for whatiwant:
         'mean' (returns mean value)
@@ -339,11 +339,11 @@ class Walker():
                 self.walk_with_self_avoid(limited=limited,nsteps=nsteps)
             else:
                 self.walk_without_avoid(limited=limited,nsteps=nsteps)
-            maxdist.append(self.get_maximum_distance())
+            maxdist_list.append(self.get_spec_distance(spec=spec))
         if whatiwant=="mean":
-            return mean(maxdist_list)
+            return stats.mean(maxdist_list)
         if whatiwant=="stdev":
-            return stdev(maxdist_list)
+            return stats.stdev(maxdist_list)
 
     def plot_success_rate_vs_nsteps(self,step_numbers=range(2,25,2),limited=True):
         """Gets success rate to number of steps in walk."""
@@ -1073,8 +1073,8 @@ def main():
     # FJ STEPLVAR
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],nsteps_list=10,save=True, labelposition="inside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="volume",nsteps_list=10,save=True,labelposition="outside")
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),show=True,save=True,labelposition="inside")
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),save=True,labelposition="inside")
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),show=True,save=True,labelposition="inside")
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),save=True,labelposition="inside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),show=True,save=True,labelposition="outside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),save=True,labelposition="outside")
 
@@ -1083,6 +1083,8 @@ def main():
     ## Check if success rate depends on r or just the relation between r and rho
     # plot_success_rate_vs_r([chainwalk],r_range=np.arange(1,30,1),M=[0.2,0.3,0.4],show=True,save=True,scale='linlin')
 
+    ete,_=chainwalk.get_multiple_end_to_end_distances(nsteps=15,nwalks=1000,limited=True,avoid=True)
+    print("Ete:",stats.mean(ete),chainwalk.get_mean_spec_distance(spec='median',nsteps=15,nwalks=1000))
 
 
 
