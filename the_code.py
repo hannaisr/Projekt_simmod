@@ -324,11 +324,11 @@ class Walker():
         if spec == 'max':
             return max(dists)
         if spec == 'mean':
-            return mean(dists)
+            return np.mean(dists)
         if spec == 'median':
-            return median(dists)
+            return np.median(dists)
 
-    def get_mean_maximum_distance(self,nsteps=15,avoid=False,limited=False,nwalks=1000,whatiwant="mean"):
+    def get_mean_maximum_distance(self,avoid=False,limited=False,nsteps=15,nwalks=1000,whatiwant="mean",spec="max"):
         """Calculate mean maximum difference for specific walk.
         Possible options for whatiwant:
         'mean' (returns mean value)
@@ -339,11 +339,36 @@ class Walker():
                 self.walk_with_self_avoid(limited=limited,nsteps=nsteps)
             else:
                 self.walk_without_avoid(limited=limited,nsteps=nsteps)
-            maxdist.append(self.get_maximum_distance())
+            maxdist_list.append(self.get_spec_distance(spec=spec))
         if whatiwant=="mean":
-            return mean(maxdist_list)
+            return np.mean(maxdist_list)
         if whatiwant=="stdev":
             return stdev(maxdist_list)
+
+    def plot_distance_between(self,maxSteps=15,avoid=False,limited=False,nwalks=1000,whatiwant="mean",spec="max"):
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+
+        ext = ""
+        if limited == True:
+            ext += ", limited"
+        rhos = list(range(1, 5))
+        #rhos.append(4.99)
+        cmap=get_cmap(maxSteps)
+
+        for nsteps in range(2,maxSteps+1):
+            print("nsteps=",nsteps)
+            qs=[] #Quotients bead size/expected value of step length
+            dist=[]
+            for rho in rhos:
+                print("rho=",rho)
+                self.rho0 = rho / 10
+                qs.append(self.rho0 / self.my)
+                dist.append(self.get_mean_maximum_distance(avoid=avoid,limited=limited,nsteps=nsteps,nwalks=nwalks,whatiwant=whatiwant,spec=spec))
+            ax.plot(qs,dist,label="steps= "+str(nsteps),color=cmap(nsteps))
+        plt.legend()
+        plt.show()
 
     def plot_success_rate_vs_nsteps(self,step_numbers=range(2,25,2),limited=True):
         """Gets success rate to number of steps in walk."""
@@ -1040,7 +1065,7 @@ def main():
     # chainwalk_stepl_variations.plot_etedist_parameters_multiple_versions()
     # chainwalk.plot_bead_size_variation(limited=True,forced=True,success=True)
     # chainwalk_stepl_variations.normplot(nwalks=1000)
-
+    chainwalk_stepl_variations.plot_distance_between(maxSteps=10,avoid=True,limited=True,nwalks=1000,whatiwant="mean",spec="max")
 
     reptationwalk = Reptation_walker(nsteps=10)
     #reptationwalk.walk_with_self_avoid()
