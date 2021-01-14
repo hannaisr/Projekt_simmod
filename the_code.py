@@ -518,6 +518,7 @@ class Freely_jointed_chain(Walker):
         # rho = self.generate_rho()
         rho = self.rho0
         if limited == True and self.last_direction != 0:
+            alpha = np.arccos((self.r**2+self.last_r**2-self.visited_points[-1][3]**2)/(2*self.r*self.last_r))
             # Define direction to walk back the same way
             theta_back = np.pi-self.last_direction[0]
             phi_back = np.pi+self.last_direction[1]
