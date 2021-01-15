@@ -69,7 +69,6 @@ class Walker():
 
     def walk_with_self_avoid(self,nsteps=100,limited=True,maxfails=math.inf,avoidLastStep=True):
         """Walk nsteps steps of self-avoiding random walk. Returns the number of walks that failed."""
-
         nfails = 0
 
         self.restart()
@@ -583,35 +582,55 @@ class Freely_jointed_chain(Walker):
         phi = rnd.uniform(0,2*np.pi)
         # rho = self.generate_rho()
         rho = self.rho0
+
+        ###---Old version---###
+        # if limited == True and self.last_direction != 0:
+        #     # Define direction to walk back the same way
+        #     theta_back = np.pi-self.last_direction[0]
+        #     phi_back = np.pi+self.last_direction[1]
+        #
+        #     while (self.r*np.sin(theta)*np.cos(phi)-self.r*np.sin(theta_back)*np.cos(phi_back))**2+(self.r*np.sin(theta)*np.sin(phi)-self.r*np.sin(theta_back)*np.sin(phi_back))**2+(self.r*np.cos(theta)-self.r*np.cos(theta_back))**2 < (current_pos[3]+rho)**2:
+        #        theta = rnd.uniform(0,np.pi)
+        #        phi = rnd.uniform(0,2*np.pi)
+        #
+        # self.last_direction = [theta,phi]
+        # # Update the coordinates
+        # current_pos[0] += self.r*np.sin(theta)*np.cos(phi)  # x
+        # current_pos[1] += self.r*np.sin(theta)*np.sin(phi)  # y
+        # current_pos[2] += self.r*np.cos(theta)              # z
+        # current_pos[3] = rho
+        ###---End of old version---###
+
+        ###---Suggestion---###
         if limited == True and self.last_direction != 0:
             # Define direction to walk back the same way
             theta_back = np.pi-self.last_direction[0]
             phi_back = np.pi+self.last_direction[1]
 
-            ###---Suggestion---###
             #In local coordinate system with "going back" vector as z axis:
             #Generate new bead center
             alpha = np.arccos((self.r ** 2 + self.last_r ** 2 - (2*self.visited_points[-2][3]) ** 2) / (2 * self.r * self.last_r))
             theta = rnd.uniform(alpha, np.pi)
-            phi = rnd.uniform(0, 2 * np.pi)
+            phi = rnd.uniform(0, 2*np.pi)
 
             #Translate bead center position into global coordinate system.
             # First: define the local coordinate system in terms of the global
             z_hat = [np.sin(theta_back) * np.cos(phi_back), np.sin(theta_back) * np.sin(phi_back),np.cos(theta_back)]  # vector between the most recent two beads
-            x_hat = [-np.sin(theta_back) * np.sin(phi_back), np.sin(theta_back) * np.cos(phi_back), 0]
-            x_hat = [x_hat[i]* 1 / np.sin(theta_back) for i in range(3)]  # Orthogonal to z_hat
-            y_hat = [-np.sin(theta_back) * np.cos(theta_back) * np.cos(phi_back),-np.sin(theta_back) * np.cos(theta_back) * np.sin(phi_back), np.sin(theta_back) ** 2] # Orthogonal to z_hat, x_hat
-            y_hat = [y_hat[i]* 1 / np.sin(theta_back) for i in range(3)]  # Orthogonal to z_hat
+            y_hat = [-np.sin(phi_back), np.cos(phi_back), 0] # changed x->y
+        # x_hat = [x_hat[i]* 1 / np.sin(theta_back) for i in range(3)]  # Orthogonal to z_hat
+            x_hat = [-np.cos(theta_back) * np.cos(phi_back),-np.cos(theta_back) * np.sin(phi_back), np.sin(theta_back)] # Orthogonal to z_hat, x_hat #changed y->x
+        #    y_hat = [y_hat[i]* 1 / np.sin(theta_back) for i in range(3)]  # Orthogonal to z_hat
 
             #print(sum([y_hat[i] * y_hat[i] for i in range(3)]))
             #Second: project the bead center position onto the global axes and translate it to origo
-            current_pos_origo = [np.cos(theta)*z_hat[i]+np.sin(theta)*np.cos(phi)*x_hat[i]+np.sin(theta)*np.sin(phi)*y_hat[i] for i in range(3)]
+            current_pos_origo = [self.r*(np.cos(theta)*z_hat[i]+np.sin(theta)*np.cos(phi)*y_hat[i]+np.sin(theta)*np.sin(phi)*x_hat[i]) for i in range(3)]
             current_pos = [current_pos[i] + current_pos_origo[i] for i in range(3)]
             current_pos.append(rho)
 
-            vector_length = np.sqrt(sum([current_pos[i]**2 for i in range(3)]))
-            self.last_direction = [np.arccos(current_pos[2]/ vector_length),np.arctan(current_pos[1] / current_pos[0])]
-            ###---End of Suggestion---###
+            # vector_length = np.sqrt(sum([current_pos[i]**2 for i in range(3)]))
+            # Define direction
+            self.last_direction = [np.arctan(current_pos_origo[1]/current_pos_origo[0]), np.arccos(current_pos_origo[2]/self.r)]
+            # self.last_direction = [np.arccos(current_pos[2]/ vector_length),np.arctan(current_pos[1] / current_pos[0])]
         else:
             self.last_direction = [theta,phi]
             # Update the coordinates
@@ -619,6 +638,7 @@ class Freely_jointed_chain(Walker):
             current_pos[1] += self.r*np.sin(theta)*np.sin(phi)  # y
             current_pos[2] += self.r*np.cos(theta)              # z
             current_pos[3] = rho
+            ###---End of Suggestion---###
         # Update list of visited points
         self.visited_points.append(current_pos)
         self.length += self.r
@@ -775,7 +795,7 @@ class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
         elif self.distribution == "exp":
             self.r = rnd.expovariate(1/self.my)  # Varation in step length
         if self.r+self.last_r <= 2*self.rho0:
-            print(self.r,self.last_r)
+            # print(self.r,self.last_r)
             self.last_r = self.r
             return True
         return Freely_jointed_chain.walk_one_step(self,limited)
@@ -957,6 +977,11 @@ def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius"
 
     # Make plot title
     title = "Success rate vs bead "+size + ", "
+    if bothLimitedAndNot is False:
+        if limited is True:
+            title += "\n limited, "
+        else:
+            title += "\n regular, "
     if avoidLastStep is True:
         title += "\n avoiding last step"
     else:
@@ -1128,7 +1153,7 @@ def main():
     # chainwalk.walk_without_avoid(nsteps=1000,limited=False)
     # chainwalk.plot_the_walk(beads=False)
     # chainwalk.walk_with_self_avoid(nsteps=20,limited=True)
-    # chainwalk.plot_the_walk(beads=True)
+    # chainwalk.plot_the_walk(beads=False)
     #-Other
     # print(chainwalk.get_success_rate(nsteps=10,limited=True))
     # print(chainwalk.get_success_rate(nsteps=10,limited=False))
@@ -1205,13 +1230,13 @@ def main():
     ### SUCCESS RATE VS BEAD SIZE
     ## LIMITED & REGULAR
     # FJ
-    plot_success_rate_vs_bead_size([chainwalk],size="radius",limited=True,nsteps_list=np.arange(2,15,2),bothLimitedAndNot=False,m_range=np.arange(0,1,0.05),show=True,save=False,labelposition="inside",avoidLastStep=False)
-    plot_success_rate_vs_bead_size([chainwalk],size="radius",limited=False,nsteps_list=np.arange(2,15,2),bothLimitedAndNot=False,m_range=np.arange(0,1,0.05),show=True,save=True,labelposition="inside",avoidLastStep=False)
-    # FJ STEPLVAR
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True,bothLimitedAndNot=False,nsteps_list=np.arange(2,15,2),m_range=np.arange(0,0.5,0.025),save=True, labelposition="inside",avoidLastStep=True)
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True,bothLimitedAndNot=False,nsteps_list=np.arange(2,15,2),m_range=np.arange(0,0.5,0.025),save=True,labelposition="inside",avoidLastStep=True)
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,2),m_range=np.arange(0,1,0.05),save=True,labelposition="inside",avoidLastStep=False)
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,2),m_range=np.arange(0,1,0.05),save=True,labelposition="inside",avoidLastStep=False)
+    # plot_success_rate_vs_bead_size([chainwalk],size="radius",limited=True,nsteps_list=np.arange(2,15,2),bothLimitedAndNot=False,m_range=np.arange(0,1,0.05),show=True,save=True,labelposition="inside",avoidLastStep=False)
+    # plot_success_rate_vs_bead_size([chainwalk],size="radius",limited=False,nsteps_list=np.arange(2,15,2),bothLimitedAndNot=False,m_range=np.arange(0,1,0.05),show=True,save=True,labelposition="inside",avoidLastStep=False)
+    # # FJ STEPLVAR
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True,bothLimitedAndNot=False,nsteps_list=np.arange(2,15,3),m_range=np.arange(0,0.56,0.05),save=True, labelposition="inside",avoidLastStep=True)
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False,bothLimitedAndNot=False,nsteps_list=np.arange(2,15,2),m_range=np.arange(0,0.5,0.025),save=True,labelposition="inside",avoidLastStep=True)
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,2),m_range=np.arange(0,1,0.05),save=True,labelposition="inside",avoidLastStep=False)
+    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,2),m_range=np.arange(0,1,0.05),save=True,labelposition="inside",avoidLastStep=False)
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),show=True,save=False,labelposition="outside")
     # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False, bothLimitedAndNot=False,nsteps_list=np.arange(2,15,1),save=True,labelposition="outside")
 
@@ -1231,7 +1256,8 @@ def main():
 
     #FJ
     #chainwalk.normplot(nwalks=100,nsteps=100)
-    #chainwalk.normplot(nwalks=100, nsteps=15,avoid=True,limited=True)
+    # chainwalk.normplot(nwalks=100, nsteps=15,avoid=True,limited=True)
+    chainwalk.normplot(nwalks=100, nsteps=15,avoid=True,limited=False)
 
     #FJ STEPL VARIATIONS
     #chainwalk_stepl_variations.normplot(nwalks=100,nsteps=100)
