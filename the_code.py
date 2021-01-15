@@ -12,7 +12,7 @@ import statistics as stats
 class Walker():
     """Walked positions are stored in a list"""
     # Initiate list of visited points
-    rho0 = 0.2 # size of first bead, the very least 1/2 step length.
+    rho0 = 0.4 # size of first bead, the very least 1/2 step length.
     # Modify generate_rho() to manage method for generating the sizes of the other beads
     origin = [0,0,0,rho0] # position and bead size are stored in list
     visited_points = [origin]
@@ -518,17 +518,12 @@ class Freely_jointed_chain(Walker):
         # rho = self.generate_rho()
         rho = self.rho0
         if limited == True and self.last_direction != 0:
-            alpha = np.arccos((self.r**2+self.last_r**2-self.visited_points[-2][3]**2)/(2*self.r*self.last_r))
             # Define direction to walk back the same way
             theta_back = np.pi-self.last_direction[0]
             phi_back = np.pi+self.last_direction[1]
-<<<<<<< HEAD
-            # while (self.r*np.sin(theta)*np.cos(phi)-self.r*np.sin(theta_back)*np.cos(phi_back))**2+(self.r*np.sin(theta)*np.sin(phi)-self.r*np.sin(theta_back)*np.sin(phi_back))**2+(self.r*np.cos(theta)-self.r*np.cos(theta_back))**2 < (current_pos[3]+rho)**2:
-            theta = rnd.uniform(alpha,np.pi)
-            phi = rnd.uniform(0,2*np.pi)
-            theta += theta_back
-            phi += phi_back
-=======
+
+            print("theta_back",theta_back)
+            print("phi_back", phi_back)
 
             ###---Suggestion---###
             #In local coordinate system with "going back" vector as z axis:
@@ -536,29 +531,32 @@ class Freely_jointed_chain(Walker):
             alpha = np.arccos((self.r ** 2 + self.last_r ** 2 - self.visited_points[-2][3] ** 2) / (2 * self.r * self.last_r))
             theta = rnd.uniform(alpha, np.pi)
             phi = rnd.uniform(0, 2 * np.pi)
+            print('alfa',alpha)
+            print('theta',theta)
+            print('phi',phi)
+
             #Translate bead center position into global coordinate system.
             # First: define the local coordinate system in terms of the global
-            z_hat = (self.visited_points[-2][:3]-self.visited_points[-1][:3])/self.last_r #vector between the most recent two beads
-            a=z_hat[0]
-            b=z_hat[1]
-            c=z_hat[2]
-            x_hat = [b,-a,0]*(1/np.sqrt(a**2+b**2)) #Orthogonal to z_hat
-            y_hat = [-c*a,b*c,a**2+b**2]*(1/(np.sqrt(a*c)**2+(b*c)**2+(a**2+b**2)**2)) #Orthogonal to z_hat, x_hat
+            z_hat = [np.sin(theta_back)*np.cos(phi_back),np.sin(theta_back)*np.sin(phi_back),np.cos(theta_back)] #vector between the most recent two beads
+            x_hat = [-np.sin(theta_back)*np.sin(phi_back),np.sin(theta_back)*np.cos(phi_back),np.cos(theta_back)] #Orthogonal to z_hat
+            y_hat = [np.sin(theta_back)*np.cos(theta_back)*(np.sin(phi_back)-np.cos(phi_back)),-np.sin(theta_back)*np.cos(theta_back)*(np.sin(phi_back)+np.cos(phi_back)),np.sin(theta_back)**2] #Orthogonal to z_hat, x_hat
             #Second: project the bead center position onto the global axes and translate it to origo
             current_pos_origo = [np.cos(theta)*z_hat[i]+np.sin(theta)*np.cos(phi)*x_hat[i]+np.sin(theta)*np.sin(phi)*y_hat[i] for i in range(3)]
             current_pos = [current_pos[i] + current_pos_origo[i] for i in range(3)]
             current_pos.append(rho)
+
+            vector_length = sum([current_pos[i]**2 for i in range(3)])
+            self.last_direction = [np.arccos(current_pos[2]/ vector_length),np.arctan(current_pos[1] / current_pos[0])]
+            print('current pos',current_pos)
+            print('vector length', vector_length)
             ###---End of Suggestion---###
-            while (self.r*np.sin(theta)*np.cos(phi)-self.r*np.sin(theta_back)*np.cos(phi_back))**2+(self.r*np.sin(theta)*np.sin(phi)-self.r*np.sin(theta_back)*np.sin(phi_back))**2+(self.r*np.cos(theta)-self.r*np.cos(theta_back))**2 < (current_pos[3]+rho)**2:
-                theta = rnd.uniform(0,np.pi)
-                phi = rnd.uniform(0,2*np.pi)
->>>>>>> ad6e3dfc072d34611aac097afc05e1c1c25ba772
-        self.last_direction = [theta,phi]
-        # Update the coordinates
-        current_pos[0] += self.r*np.sin(theta)*np.cos(phi)  # x
-        current_pos[1] += self.r*np.sin(theta)*np.sin(phi)  # y
-        current_pos[2] += self.r*np.cos(theta)              # z
-        current_pos[3] = rho
+        else:
+            self.last_direction = [theta,phi]
+            # Update the coordinates
+            current_pos[0] += self.r*np.sin(theta)*np.cos(phi)  # x
+            current_pos[1] += self.r*np.sin(theta)*np.sin(phi)  # y
+            current_pos[2] += self.r*np.cos(theta)              # z
+            current_pos[3] = rho
         # Update list of visited points
         self.visited_points.append(current_pos)
         self.length += self.r
@@ -1047,16 +1045,14 @@ def main():
     #chainwalk.plot_success_rate_vs_nsteps(limited=False)
     #chainwalk.plot_success_rate_vs_nsteps(limited=True)
     #chainwalk.plot_multiple_end_to_end_distances_holdon(nwalks=1000)
-    chainwalk.walk_with_self_avoid(nsteps=10,limited=True)
-    chainwalk.plot_the_walk(beads=True)
 
     #chainwalk.normplot(nwalks=1000)
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=2,avoid=True)
     # chainwalk.plot_multiple_end_to_end_distances(nwalks=50,avoid=True,limited=True)
     # chainwalk.walk_without_avoid(nsteps=1000,limited=False)
     # chainwalk.plot_the_walk(beads=False)
-    # chainwalk.walk_with_self_avoid(nsteps=20,limited=True)
-    # chainwalk.plot_the_walk(beads=False)
+    chainwalk.walk_with_self_avoid(nsteps=20,limited=True)
+    chainwalk.plot_the_walk(beads=True)
     # print(chainwalk.get_success_rate(nsteps=10,limited=True))
     # print(chainwalk.get_success_rate(nsteps=10,limited=False))
     # chainwalk.plot_success_rate_vs_nsteps(limited=True)
