@@ -14,7 +14,7 @@ import statistics as stats
 class Walker():
     """Walked positions are stored in a list"""
     # Initiate list of visited points
-    rho0 = 0.6 # size of first bead, the very least 1/2 step length.
+    rho0 = 0.3 # size of first bead, the very least 1/2 step length.
     # Modify generate_rho() to manage method for generating the sizes of the other beads
     origin = [0,0,0,rho0] # position and bead size are stored in list
     visited_points = [origin]
@@ -561,9 +561,9 @@ class Grid_walker(Walker):
         # if self.r < 2*self.rho:
         #     return True
         if avoidLastStep is True:
-            last = -2
+            last = -1
         elif avoidLastStep is False:
-            last = -3
+            last = -2
 
         if self.visited_points[0][:3] == self.visited_points[-1][:3]:
             return True
@@ -628,9 +628,9 @@ class Freely_jointed_chain(Walker):
         # if self.r < 2*self.rho:
         #     return True
         if avoidLastStep is True:
-            last = -2
+            last = -1
         elif avoidLastStep is False:
-            last = -3
+            last = -2
 
         for point in self.visited_points[:last]:
             r_centres = np.sqrt((point[0] - cp[0])**2 + (point[1] - cp[1])**2 + (point[2] - cp[2])**2)
