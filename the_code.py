@@ -14,7 +14,7 @@ import statistics as stats
 class Walker():
     """Walked positions are stored in a list"""
     # Initiate list of visited points
-    rho0 = 0.4 # size of first bead, the very least 1/2 step length.
+    rho0 = 0.6 # size of first bead, the very least 1/2 step length.
     # Modify generate_rho() to manage method for generating the sizes of the other beads
     origin = [0,0,0,rho0] # position and bead size are stored in list
     visited_points = [origin]
@@ -67,7 +67,7 @@ class Walker():
                     break
         # print('Managed to walk', len(self.visited_points) - 1, 'steps')
 
-    def walk_with_self_avoid(self,nsteps=100,limited=True,maxfails=math.inf):
+    def walk_with_self_avoid(self,nsteps=100,limited=True,maxfails=math.inf,avoidLastStep=True):
         """Walk nsteps steps of self-avoiding random walk. Returns the number of walks that failed."""
 
         nfails = 0
@@ -81,7 +81,7 @@ class Walker():
                 try_again = self.walk_one_step(limited)
                 if try_again is False:
                     # Test if the site is already occupied.
-                    try_again=self.test_avoid()
+                    try_again=self.test_avoid(avoidLastStep=avoidLastStep)
                 # In case of self interception, break attempt immediately
                 if try_again is True:
                     # print('Managed to walk',len(self.visited_points)-2,'steps')
@@ -100,7 +100,7 @@ class Walker():
         else:
             return(self.rho0)
 
-    def test_avoid(self):
+    def test_avoid(self,avoidLastStep=True):
         """Implemented by child class"""
         pass
 
@@ -133,14 +133,14 @@ class Walker():
         plt.show()
         return x,y,z,rho
 
-    def get_success_rate(self,nsteps=20,limited=True):
+    def get_success_rate(self,nsteps=20,limited=True,avoidLastStep=True):
         """Calculates success rate from nsuccessful_walks number of successful walks."""
         nfails = 0
         nsuccess = 0
         nwalks = 1000
         while (nfails+nsuccess) < nwalks:
             maxfails = nwalks-(nsuccess+nfails) # Maximum number of failed attempts before breaking loop of self avoiding walk
-            nfails += self.walk_with_self_avoid(nsteps=nsteps,limited=limited,maxfails=maxfails)
+            nfails += self.walk_with_self_avoid(nsteps=nsteps,limited=limited,maxfails=maxfails,avoidLastStep=avoidLastStep)
             if nfails+nsuccess < nwalks:
                 nsuccess += 1
         return nsuccess/(nsuccess+nfails)
@@ -150,7 +150,7 @@ class Walker():
         last_point = self.visited_points[-1]
         return np.sqrt((last_point[0]-self.origin[0])**2+(last_point[1]-self.origin[1])**2+(last_point[2]-self.origin[2])**2)
 
-    def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False,limited=True,forced=False):
+    def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False,limited=True,forced=False,avoidLastStep=True):
         """Returns a list of end-to-end distances and chain lengths for nwalks number of walks of length nsteps"""
         etedist_list = np.zeros(nwalks)
         length_list = np.zeros(nwalks)
@@ -160,7 +160,7 @@ class Walker():
                 if forced is True:
                     self.walk_with_self_avoid_forced(nsteps=nsteps,limited=limited)
                 else:
-                    self.walk_with_self_avoid(nsteps=nsteps,limited=limited)
+                    self.walk_with_self_avoid(nsteps=nsteps,limited=limited,avoidLastStep=avoidLastStep)
             else:
                 self.walk_without_avoid(nsteps=nsteps)
             etedist_list[i] = self.get_end_to_end_distance()
@@ -332,7 +332,7 @@ class Walker():
         if spec == 'median':
             return np.median(dists)
 
-    def get_mean_maximum_distance(self,avoid=False,limited=False,nsteps=15,nwalks=1000,whatiwant="mean",spec="max"):
+    def get_mean_maximum_distance(self,avoid=False,limited=False,nsteps=15,nwalks=1000,whatiwant="mean",spec="max",avoidLastStep=True):
         """Calculate mean maximum difference for specific walk.
         Possible options for whatiwant:
         'mean' (returns mean value)
@@ -340,7 +340,7 @@ class Walker():
         maxdist_list = []
         for i in range(nwalks):
             if avoid is True:
-                self.walk_with_self_avoid(limited=limited,nsteps=nsteps)
+                self.walk_with_self_avoid(limited=limited,nsteps=nsteps,avoidLastStep=avoidLastStep)
             else:
                 self.walk_without_avoid(limited=limited,nsteps=nsteps)
             maxdist_list.append(self.get_spec_distance(spec=spec))
@@ -556,13 +556,18 @@ class Grid_walker(Walker):
         self.length += self.r
         return False
 
-    def test_avoid(self):
+    def test_avoid(self,avoidLastStep=True):
         """Test if latest site is already occupied. Return True if so, False if not."""
         # if self.r < 2*self.rho:
         #     return True
+        if avoidLastStep is True:
+            last = -1
+        elif avoidLastStep is False:
+            last = -2
+
         if self.visited_points[0][:3] == self.visited_points[-1][:3]:
             return True
-        elif any(t == self.visited_points[-1][:3] for t in [i[:3] for i in self. visited_points[:-2]]):
+        elif any(t == self.visited_points[-1][:3] for t in [i[:3] for i in self. visited_points[:last]]):
             return True
         return False
 
@@ -616,13 +621,18 @@ class Freely_jointed_chain(Walker):
         self.last_r = self.r
         return False
 
-    def test_avoid(self):
+    def test_avoid(self,avoidLastStep=True):
         """Test if latest site is already occupied - continuous case"""
         cp = self.visited_points[-1]    # Current position
         #The distance between successive sphere centres is self.r. Interception between any two spheres occurs if their centres are less apart than their diameter
         # if self.r < 2*self.rho:
         #     return True
-        for point in self.visited_points[:-2]:
+        if avoidLastStep is True:
+            last = -1
+        elif avoidLastStep is False:
+            last = -2
+
+        for point in self.visited_points[:last]:
             r_centres = np.sqrt((point[0] - cp[0])**2 + (point[1] - cp[1])**2 + (point[2] - cp[2])**2)
             if r_centres < point[3]+cp[3]:
                 # Self-intercept - needs to restart the process
