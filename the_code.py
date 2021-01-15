@@ -597,9 +597,13 @@ class Freely_jointed_chain(Walker):
 
             #Translate bead center position into global coordinate system.
             # First: define the local coordinate system in terms of the global
-            z_hat = [np.sin(theta_back)*np.cos(phi_back),np.sin(theta_back)*np.sin(phi_back),np.cos(theta_back)] #vector between the most recent two beads
-            x_hat = [-np.sin(theta_back)*np.sin(phi_back),np.sin(theta_back)*np.cos(phi_back),np.cos(theta_back)] #Orthogonal to z_hat
-            y_hat = [np.sin(theta_back)*np.cos(theta_back)*(np.sin(phi_back)-np.cos(phi_back)),-np.sin(theta_back)*np.cos(theta_back)*(np.sin(phi_back)+np.cos(phi_back)),np.sin(theta_back)**2] #Orthogonal to z_hat, x_hat
+            z_hat = [np.sin(theta_back) * np.cos(phi_back), np.sin(theta_back) * np.sin(phi_back),np.cos(theta_back)]  # vector between the most recent two beads
+            x_hat = [-np.sin(theta_back) * np.sin(phi_back), np.sin(theta_back) * np.cos(phi_back), 0]
+            x_hat = [x_hat[i]* 1 / np.sin(theta_back) for i in range(3)]  # Orthogonal to z_hat
+            y_hat = [-np.sin(theta_back) * np.cos(theta_back) * np.cos(phi_back),-np.sin(theta_back) * np.cos(theta_back) * np.sin(phi_back), np.sin(theta_back) ** 2] # Orthogonal to z_hat, x_hat
+            y_hat = [y_hat[i]* 1 / np.sin(theta_back) for i in range(3)]  # Orthogonal to z_hat
+
+            #print(sum([y_hat[i] * y_hat[i] for i in range(3)]))
             #Second: project the bead center position onto the global axes and translate it to origo
             current_pos_origo = [np.cos(theta)*z_hat[i]+np.sin(theta)*np.cos(phi)*x_hat[i]+np.sin(theta)*np.sin(phi)*y_hat[i] for i in range(3)]
             current_pos = [current_pos[i] + current_pos_origo[i] for i in range(3)]
