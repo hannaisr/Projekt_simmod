@@ -950,12 +950,13 @@ def plot_success_rate_vs_nsteps(instances,limited=True,bothLimitedAndNot=False,n
         fileName += "lim"
     if limited==False or bothLimitedAndNot==True:
         fileName += "reg"
-    fileName = re.sub('\W+',' ',fileName)+" m" + str(m_range)+" "+str(scale)
+    fileName = re.sub('\W+',' ',fileName)+" m" + str(m_range)
     if avoidLastStep is True:
         fileName += " avoidLastStep"
     print("fileName:", fileName)
     for sc in scale:
-        plot2D(title,"Number of steps", "Success rate", list(nsteps_range), success_rates, labels_list,scale=scale[sc],show=show,fileName=fileName,save=save,labelposition=labelposition)
+        newFileName=fileName+" "+sc
+        plot2D(title,"Number of steps", "Success rate", list(nsteps_range), success_rates, labels_list,scale=scale[sc],show=show,fileName=newFileName,save=save,labelposition=labelposition)
     return nsteps_range, success_rates
 
 def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius",limited=True,bothLimitedAndNot=False,m_range=np.arange(0,1.0,0.05),show=True,save=False,scale='linlin',labelposition="outside",avoidLastStep=True,title=None,labels_list=None):
@@ -971,6 +972,8 @@ def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius"
         labels_list = []
     else:
         generate_labels = False
+    if type(scale)==str:
+        scale=[scale]
     volume_list = m_range**3*4/3*np.pi
     area_list = m_range**2*4*np.pi
 
@@ -1034,11 +1037,14 @@ def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius"
     if limited==False or bothLimitedAndNot==True:
         fileName += "reg"
 
-    fileName = re.sub('\W+',' ',fileName)+" steps"+str(nsteps_list)+" "+str(scale)
+    fileName += " steps"+str(nsteps_list)
     if avoidLastStep is True:
         fileName += " avoidLastStep"
+    fileName = re.sub('\W+',' ',fileName)
     print(fileName)
-    plot2D(title, xname, "Success rate", x_list, success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
+    for sc in scale:
+        newFileName = fileName + " " + sc
+        plot2D(title, xname, "Success rate", x_list, success_rates, labels_list,scale=sc,show=show,fileName=newFileName,save=save,labelposition=labelposition)
     return m_range, success_rates
 
 def plot_success_rate_vs_r(instances,nsteps=10,limited=True,bothLimitedAndNot=False,r_range=np.arange(1,10,1),M=0.4,show=True,save=False,scale='linlin',labelposition="inside",avoidLastStep=True):
