@@ -387,7 +387,7 @@ class Walker():
         plt.show()
         return step_numbers,success_rates
 
-    def plot_bead_size_variation(self,nsteps=100,nwalks=10,my=True,success=False,limited=False,forced=False,newFig=True,avoidLastStep=True):
+    def plot_bead_size_variation(self,nsteps=100,nwalks=10,my=True,rhos=np.arange(0.099,0.5,0.025),success=False,limited=False,forced=False,holdon=False,avoidLastStep=True):
         """Plots the relationship between quotient bead size/my or sigma of step length and RMS End-to-End distance or success rate in self-avoiding chains"""
         qs=[] #Quotients bead size/expected value of step length
         rms=[]
@@ -399,15 +399,15 @@ class Walker():
             ext += ", limited"
         if forced == True:
             ext += ", forced"
-        rhos = list(range(1,5))
-        rhos.append(4.99)
+        # rhos = list(range(1,5))
+        # rhos.append(4.99)
         for rho in rhos:
             print(rho)
-            self.rho0=rho/10
+            self.rho0=rho
             if my==True: #Bead size by expected value
-                qs.append(2*self.rho0/self.my)
+                qs.append(self.rho0/self.my)
             else: #Bead size by standard deviation
-                qs.append(2*self.rho0/self.sigma)
+                qs.append(self.rho0/self.sigma)
             if success==False:#y=RMS
                 etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps, nwalks=nwalks, avoid=True, limited=limited,forced=forced,avoidLastStep=avoidLastStep)
                 # RMS end-to-end distance
@@ -418,6 +418,9 @@ class Walker():
                 std_err.append(np.sqrt((np.mean(np.square(etedist_list)) - np.mean(etedist_list) ** 2) / (nwalks - 1)))
             else:#y=Success rate
                 success_rates.append(self.success_rate(nsteps=nsteps,limited=limited))
+        if holdon==True:
+            return qs, rms, rms_fluc, std_err, success_rates
+
         fig = plt.figure()
         ax = fig.add_subplot(111)
         if my==True:
@@ -434,53 +437,86 @@ class Walker():
             ax.set_ylabel("Success rate")
             plt.suptitle("Success rate vs bead size for " + str(nsteps) + "-steps \n"+self.name+ext)
         plt.legend()
-        if newFig is True:
-            plt.show()
+        plt.show()
 
-    def plot_multiple_bead_size_variations_holdon(self, nwalks=10,nsteps=100):
+    def plot_multiple_bead_size_variations_holdon(self,nwalks=1000,nsteps=10,types_of_walks=[1,2,3],data=[0,1,2],plot_rms_grid=False,save=False,avoidLastStep=True,title=None,labels=None,boxes=True,ylabel=None):
         """Plots the relationship between quotient bead size/my or sigma of step length and RMS End-to-End distance or success rate in self-avoiding chains. All chain-types in same plot."""
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.set_xlabel("Bead radius/Expected value of step length")
-        plt.suptitle("End-to-end distance measures vs bead radius \n for " + str(nwalks) + " walks of " + str(nsteps) + "-steps " + self.name)
+        ax.set_ylabel(ylabel)
+        if title==None:
+            title = "End-to-end distance measures vs bead radius \n for " + str(nwalks) + " walks of " + str(nsteps) + "-steps " + self.name
+        plt.suptitle(title)
         cmap = get_cmap(n=4)
 
         # Self avoid
-        i = 1
-        qs, rms, rms_fluc, std_err = self.plot_bead_size_variation(nwalks=nwalks,nsteps=nsteps,limited=False, forced=False,newFig=False)
-        ax.plot(qs, rms, label="Self avoiding", color=cmap(i))
-        ax.plot(qs, rms_fluc, color=cmap(i))
-        ax.plot(qs, std_err, color=cmap(i))
+        if 1 in types_of_walks:
+            i = 1
+            qs, rms, rms_fluc, std_err, success_rates = self.plot_bead_size_variation(nwalks=nwalks,nsteps=nsteps,limited=False, forced=False,holdon=True, avoidLastStep=avoidLastStep)
+            if 0 in data:
+                ax.plot(qs, rms, label="Self avoiding" if labels==None else labels[0], color=cmap(i))
+            if 1 in data:
+                ax.plot(qs, rms_fluc, color=cmap(i))
+            if 2 in data:
+                ax.plot(qs, std_err, color=cmap(i))
 
         # Self avoid:limited
-        i = 2
-        qs, rms, rms_fluc, std_err = self.plot_bead_size_variation(nwalks=nwalks,nsteps=nsteps,limited=True, forced=False,newFig=False)
-        ax.plot(qs, rms, label="Self avoiding: limited", color=cmap(i))
-        ax.plot(qs, rms_fluc, color=cmap(i))
-        ax.plot(qs, std_err, color=cmap(i))
+        if 2 in types_of_walks:
+            i = 2
+            qs, rms, rms_fluc, std_err, success_rates = self.plot_bead_size_variation(nwalks=nwalks,nsteps=nsteps,limited=True, forced=False,holdon=True, avoidLastStep=avoidLastStep)
+            if 0 in data:
+                ax.plot(qs, rms, label="Self avoiding: limited" if labels==None else labels[1], color=cmap(i))
+            if 1 in data:
+                ax.plot(qs, rms_fluc, color=cmap(i))
+            if 2 in data:
+                ax.plot(qs, std_err, color=cmap(i))
 
         # Self avoid:forced
-        i = 3
-        qs, rms, rms_fluc, std_err = self.plot_bead_size_variation(nwalks=nwalks,nsteps=nsteps,limited=True, forced=True,newFig=False)
-        ax.plot(qs, rms, label="Self avoiding: forced", color=cmap(i))
-        ax.plot(qs, rms_fluc, color=cmap(i))
-        ax.plot(qs, std_err, color=cmap(i))
+        if 3 in types_of_walks:
+            i = 3
+            qs, rms, rms_fluc, std_err, success_rates = self.plot_bead_size_variation(nwalks=nwalks,nsteps=nsteps,limited=True, forced=True,holdon=True, avoidLastStep=avoidLastStep)
+            if 0 in data:
+                ax.plot(qs, rms, label="Self avoiding: forced" if labels==None else labels[2], color=cmap(i))
+            if 1 in data:
+                ax.plot(qs, rms_fluc, color=cmap(i))
+            if 2 in data:
+                ax.plot(qs, std_err, color=cmap(i))
 
-        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-        textstr = "RMS"
-        # place a text box in upper left in axes coords
-        ax.text(0.90, 0.95, textstr, transform=ax.transAxes, fontsize=10,
-                verticalalignment='top', bbox=props)
-        textstr = "RMS\nfluctuation"
-        # place a text box in upper left in axes coords
-        ax.text(0.90, 0.3, textstr, transform=ax.transAxes, fontsize=10,
-                verticalalignment='top', bbox=props)
-        textstr = "Standard error\nestimate"
-        # place a text box in upper left in axes coords
-        ax.text(0.90, 0.1, textstr, transform=ax.transAxes, fontsize=10,
-                verticalalignment='top', bbox=props)
+        if plot_rms_grid is True:
+            # Rms for self avoiding grid walk of different number of steps (0-19) (obtained by walking 10 000 walks for each number of steps)
+            rms_grid = [0.0, 1.0, 1.549128787415688, 1.97453792062852, 2.3518928547023563,
+            2.6816039976103854, 3.0023324266310016, 3.301999394306425, 3.5805865441293276,
+            3.844866707702622, 4.119465984809196, 4.3475510347780855, 4.590250537824706,
+            4.815952657574615, 5.017868073196026, 5.224232000973923, 5.449091667424947,
+            5.652397721321457, 5.850743542490989, 6.029278563808443]
+
+            ax.plot(qs, [rms_grid[nsteps]]*len(qs), label="Self avoiding grid walker")
+
+
+        if boxes == True:
+            props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+            if 0 in data:
+                textstr = "RMS"
+                # place a text box in upper left in axes coords
+                ax.text(0.90, 0.95, textstr, transform=ax.transAxes, fontsize=10,
+                        verticalalignment='top', bbox=props)
+            if 1 in data:
+                textstr = "RMS\nfluctuation"
+                # place a text box in upper left in axes coords
+                ax.text(0.90, 0.3, textstr, transform=ax.transAxes, fontsize=10,
+                        verticalalignment='top', bbox=props)
+            if 2 in data:
+                textstr = "Standard error\nestimate"
+                # place a text box in upper left in axes coords
+                ax.text(0.90, 0.1, textstr, transform=ax.transAxes, fontsize=10,
+                        verticalalignment='top', bbox=props)
+
+        print(qs,rms)
 
         plt.legend()
+        if save==True:
+            plt.savefig(title,bbox_inches='tight')
         plt.show()
         return
 
@@ -1211,6 +1247,7 @@ def plot_multiple_end_to_end_distances(instances,types_of_walks=[0,1,2,3],data=[
                 ax.plot(chain_lengths, rms_fluc,label="Self avoiding, "+instance.shortname if not 0 in data else None,color=cmap(i))
             if 2 in data:
                 ax.plot(chain_lengths, std_err,label="Self avoiding, "+instance.shortname if not 0 in data and not 1 in data else None, color=cmap(i))
+            print(rms)
 
         #Self avoid:limited
         if 2 in types_of_walks:
@@ -1483,16 +1520,22 @@ def main():
     # # # END-TO-END-DISTANCE # # #
     # #-------------------------# #
 
-    # Compare grid with FJ chain, not self avoiding
-    plot_multiple_end_to_end_distances([gridwalk,chainwalk],types_of_walks=[0],data=[0,1,2],nsteps_list=range(5,100,5),nwalks=5000,show=False,save=True)
-    # Compare grid with FJ chain, self avoiding
-    plot_multiple_end_to_end_distances([gridwalk,chainwalk],types_of_walks=[1],data=[0,1,2],nsteps_list=range(5,20,2),nwalks=5000,show=False,save=True)
+    # Find bead size that best corresponds to grid walk (not limited, self avoiding chain walk)
+    chainwalk.plot_multiple_bead_size_variations_holdon(nwalks=5000,nsteps=10,types_of_walks=[1],data=[0],plot_rms_grid=True,save=True,title="RMS of end-to-end distance for freely jointed chain\n and grid walker,\n 5000 walks, 10 steps",labels=["Self avoiding FJ"],ylabel="RMS",boxes=False)
 
-    # Compare self avoiding with limited self avoiding, grid
-    plot_multiple_end_to_end_distances([gridwalk],types_of_walks=[1,2],data=[0,1,2],nsteps_list=range(5,20,2),nwalks=5000,show=False,save=True)
-    # Compare limited self avoiding with forced self avoiding, grid
-    plot_multiple_end_to_end_distances([gridwalk],types_of_walks=[1,3],data=[0,1,2],nsteps_list=range(5,20,2),nwalks=5000,show=True,save=True)
+    # # Compare grid with FJ chain, not self avoiding
+    # plot_multiple_end_to_end_distances([gridwalk,chainwalk],types_of_walks=[0],data=[0,1,2],nsteps_list=range(5,100,5),nwalks=5000,show=False,save=True)
+    # # Compare grid with FJ chain, self avoiding
+    # plot_multiple_end_to_end_distances([gridwalk,chainwalk],types_of_walks=[1],data=[0,1,2],nsteps_list=range(5,20,2),nwalks=5000,show=False,save=True)
 
+    # # Compare self avoiding with limited self avoiding, grid
+    # plot_multiple_end_to_end_distances([gridwalk],types_of_walks=[1,2],data=[0,1,2],nsteps_list=range(5,20,2),nwalks=5000,show=False,save=True)
+    # # Compare limited self avoiding with forced self avoiding, grid
+    # plot_multiple_end_to_end_distances([gridwalk],types_of_walks=[1,3],data=[0,1,2],nsteps_list=range(5,20,2),nwalks=5000,show=True,save=True)
+
+
+    # Get rms for all grids of different number of steps (not important code)
+    # plot_multiple_end_to_end_distances([gridwalk],types_of_walks=[1],data=[0],nsteps_list=range(1,20,1),nwalks=10000,show=False,save=True)
 
     # plot_multiple_end_to_end_distances([gridwalk,chainwalk,chainwalk_stepl_variations],types_of_walks=[0],data=[0],nwalks=1000,save=True)
     # plot_multiple_end_to_end_distances([gridwalk,chainwalk,chainwalk_stepl_variations],types_of_walks=[1],data=[1],nwalks=1000,save=True)
