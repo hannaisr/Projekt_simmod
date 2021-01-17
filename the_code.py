@@ -974,7 +974,7 @@ def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linlin',sho
         plt.plot(xlists,ylists)
 
     # Linear regression
-    if scale == 'linlog'
+    if scale == 'linlog':
         plot_linreg(xlists,np.log10(ylists),labels_list)
 
     # Generate labels
