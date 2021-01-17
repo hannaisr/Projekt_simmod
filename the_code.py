@@ -972,6 +972,11 @@ def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linlin',sho
             plt.plot(xlists[i],ylists[i],label=labels_list[i])
     else:
         plt.plot(xlists,ylists)
+
+    # Linear regression
+    if scale[:3] == 'log' or scale[-3:] == 'log':
+        plot_linreg(xlists,np.log10(ylists),labels_list)
+
     # Generate labels
     if labels_list:
         if labelposition=="inside":
@@ -1300,6 +1305,26 @@ def plot_multiple_end_to_end_distances(instances,types_of_walks=[0,1,2,3],data=[
     return
 
 
+def plot_linreg(xs,ys,name):
+    global plt
+    def round_to_1(x):
+        return round(x, -int(np.floor(np.log10(abs(x)))))
+    textstr = ""
+    for i in range(len(ys)):
+        p,cov = np.polyfit(xs[i],ys[i],1,cov=True)
+        sdev=np.sqrt(np.diag(cov))
+        if sdev[0]<0.1 or sdev[1]<0.1:
+            textstr+="\n"+name[i]+"&"+str(round(p[0],2)) +"&"+ str(round_to_1(sdev[0]))+"&" + str(round(p[1],2)) + "&"+ str(round_to_1(sdev[1]))+"\\\\"
+        else:
+            textstr+="\n"+name[i]+"&"+str(round(p[0],2)) +"&"+ str(round(sdev[0],2))+"&" + str(round(p[1],2)) + "&"+ str(round(sdev[1],2))+"\\\\"
+        #y=10**m*10**(k*x)
+        x=xs[i]
+        y=[10**p[1]*10**(p[0]*x[i])for i in range(len(x))]
+        plt.plot(x,y,color="red",alpha=0.5)
+    print_out = '\hline\nLine & k & k s.dev.& m & m s.dev.\\\\\n\hline' + textstr + '\n\hline'
+    print(print_out)
+    return
+
 def main():
     gridwalk = Grid_walker()
     #-- I PDF:
@@ -1415,11 +1440,11 @@ def main():
     #-------------------------------------#
     # # SUCCESS RATE VS NUMBER OF STEPS # #
     #-------------------------------------#
-    nsteps_list = range(1,16,1)
+    nsteps_list = range(2,16,1)
     ## FREELY JOINTED, AVOID LAST BEAD
     m_list1 = np.arange(0.099,0.51,0.1)
     # # Limited, lin-lin and lin-log scale, comparison multiple rho/r
-    # plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',limited=True,nsteps_list=nsteps_list,m_list=m_list1,show=True,save=True,scale=scales)
+    plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',limited=True,nsteps_list=nsteps_list,m_list=m_list1,show=True,save=False,scale=scales)
     # # Regular, lin-lin and lin-log scale, comparison multiple rho/r
     # plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',limited=False,nsteps_list=nsteps_list,m_list=m_list1,show=False,save=True,scale=scales)
     # # Complarison limited and regular
@@ -1454,7 +1479,7 @@ def main():
     #
     # ## GRID
     # # Limited, lin-lin and lin-log scale
-    # plot_success_rate_vs_onXAxis([gridwalk],onXAxis='nsteps',limited=True,nsteps_list=range(1,100,1),show=False,save=True,scale=scales)
+    # plot_success_rate_vs_onXAxis([gridwalk],onXAxis='nsteps',limited=True,nsteps_list=range(1,100,1),show=True,save=False,scale=scales)
     # # Regular, lin-lin and lin-log scale
     # plot_success_rate_vs_onXAxis([gridwalk],onXAxis='nsteps',limited=False,nsteps_list=range(1,25,1),show=False,save=True,scale=scales)
     # # Comparison between limited and regular, lin-lin and lin-log scale
@@ -1521,7 +1546,7 @@ def main():
     # #-------------------------# #
 
     # Find bead size that best corresponds to grid walk (not limited, self avoiding chain walk)
-    chainwalk.plot_multiple_bead_size_variations_holdon(nwalks=5000,nsteps=10,types_of_walks=[1],data=[0],plot_rms_grid=True,save=True,title="RMS of end-to-end distance for freely jointed chain\n and grid walker,\n 5000 walks, 10 steps",labels=["Self avoiding FJ"],ylabel="RMS",boxes=False)
+    #chainwalk.plot_multiple_bead_size_variations_holdon(nwalks=5000,nsteps=10,types_of_walks=[1],data=[0],plot_rms_grid=True,save=True,title="RMS of end-to-end distance for freely jointed chain\n and grid walker,\n 5000 walks, 10 steps",labels=["Self avoiding FJ"],ylabel="RMS",boxes=False)
 
     # # Compare grid with FJ chain, not self avoiding
     # plot_multiple_end_to_end_distances([gridwalk,chainwalk],types_of_walks=[0],data=[0,1,2],nsteps_list=range(5,100,5),nwalks=5000,show=False,save=True)
