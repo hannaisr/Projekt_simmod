@@ -301,15 +301,15 @@ class Walker():
         print("List of mus:",mu_list,"\n List of sigmas:",sigma_list)
         return mu_list, sigma_list, length_list, pval_list
 
-    def plot_etedist_normal_parameters_multiple_methods(self):
+    def plot_etedist_normal_parameters_multiple_methods(self,plotLin=False,scale="linlin",save=True):
         """Plots end-to-end distance mu and sigma for different methods of random walk"""
         mu1,sigma1,lenlist1,pval1 = self.plot_etedist_normal_parameters(limited=False,show=False)
         mu3,sigma3,lenlist3,pval3 = self.plot_etedist_normal_parameters(avoid=True,limited=True,show=False)
         mu4,sigma4,lenlist4,pval4 = self.plot_etedist_normal_parameters(limited=False,forced=True,avoid=True,show=False)
         mu2,sigma2,lenlist2,pval2 = self.plot_etedist_normal_parameters(limited=False,avoid=True,forced=False,show=False)
-        plot2D("End-to-end distance mu vs chain length\n for "+str(self.name),"Chain length", "End-to-end distance mu", [lenlist1,lenlist2,lenlist3,lenlist4],[mu1,mu2,mu3,mu4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"],show=False,scale='log')
-        plot2D("End-to-end distance sigma vs chain length\n for "+str(self.name),"Chain length", "End-to-end distance sigma", [lenlist1,lenlist2,lenlist3,lenlist4],[sigma1,sigma2,sigma3,sigma4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"],show=False,scale='log')
-        plot2D("Normal distribution p-value \n for "+str(self.name),"Chain length", "P-value", [lenlist1,lenlist2,lenlist3,lenlist4],[pval1,pval2,pval3,pval4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"],show=False)
+        plot2D("End-to-end distance mu vs chain length\n for "+str(self.name),"Chain length", "End-to-end distance mu", [lenlist1,lenlist2,lenlist3,lenlist4],[mu1,mu2,mu3,mu4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"],show=False,scale=scale,plotLin=plotLin,save=save)
+        plot2D("End-to-end distance sigma vs chain length\n for "+str(self.name),"Chain length", "End-to-end distance sigma", [lenlist1,lenlist2,lenlist3,lenlist4],[sigma1,sigma2,sigma3,sigma4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"],show=False,scale=scale,plotLin=plotLin,save=save)
+        plot2D("Normal distribution p-value \n for "+str(self.name),"Chain length", "P-value", [lenlist1,lenlist2,lenlist3,lenlist4],[pval1,pval2,pval3,pval4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"],show=False,save=save)
         plt.show()
 
     def get_spec_distance(self,spec='max'):
@@ -960,7 +960,7 @@ def get_cmap(n, name='hsv'):
     return plt.cm.get_cmap(name, n + 1)
 
 
-def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linlin',show=True,save=False,fileName=None,labelposition="inside"):
+def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linlin',show=True,save=False,fileName=None,labelposition="inside",plotLin=False):
     """xlists and ylists can be lists of lists if more than one series should be plotted."""
     print("xlists:",xlists)
     print("ylists:",ylists)
@@ -978,6 +978,16 @@ def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linlin',sho
             plt.plot(xlists[i],ylists[i],label=labels_list[i])
     else:
         plt.plot(xlists,ylists)
+
+    # Linear regression
+    #plotLin if one wnats to plot the lines, else just a printout
+    if scale == "linlog":
+        plot_linreg(xlists,np.log10(ylists),labels_list,scale,plotLin)
+    elif scale == "loglog":
+        plot_linreg(np.log10(xlists),np.log10(ylists),labels_list,scale,plotLin)
+    elif scale == "linlin":
+        plot_linreg(xlists,ylists,labels_list,scale,plotLin)
+
     # Generate labels
     if labels_list:
         if labelposition=="inside":
@@ -1007,7 +1017,7 @@ def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linlin',sho
     if show is True:
         plt.show()
 
-def plot_success_rate_vs_onXAxis(instances,onXAxis='nsteps',limited=True,bothLimitedAndNot=False,nsteps_list=range(0,25,1),m_list=0.4,show=True,save=False,scale='linlin',labelposition="inside",avoidLastStep=True,title=None,labels_list=None):
+def plot_success_rate_vs_onXAxis(instances,onXAxis='nsteps',limited=True,bothLimitedAndNot=False,nsteps_list=range(0,25,1),m_list=0.4,show=True,save=False,scale='linlin',labelposition="inside",avoidLastStep=True,title=None,labels_list=None,plotLin=False):
     """Plots success rate vs number of steps in walk for various instances, or just one. Also compares limited with not limited if bothLimitedAndNot is True.
     nsteps is the number of steps in each walk
     m = rho/r_mean (m_list is a list of these values to be tested)
@@ -1141,11 +1151,13 @@ def plot_success_rate_vs_onXAxis(instances,onXAxis='nsteps',limited=True,bothLim
         fileName += " avoidLastStep"
     fileName = re.sub('\W+','_',fileName)
     for sc in scale:
+        if scale == "linlin":
+            plotLin=False
         newFileName=fileName+"_"+sc
-        plot2D(title,xlabel,"Success rate",x_list,success_rates,labels_list,scale=sc,show=show,fileName=newFileName,save=save,labelposition=labelposition)
+        plot2D(title,xlabel,"Success rate",x_list,success_rates,labels_list,scale=sc,show=show,fileName=newFileName,save=save,labelposition=labelposition,plotLin=plotLin)
     return x_list, success_rates
 
-def plot_success_rate_vs_r(instances,nsteps=10,limited=True,bothLimitedAndNot=False,r_range=np.arange(1,10,1),m_list=0.4,show=True,save=False,scale='linlin',labelposition="inside",avoidLastStep=True):
+def plot_success_rate_vs_r(instances,nsteps=10,limited=True,bothLimitedAndNot=False,r_range=np.arange(1,10,1),m_list=0.4,show=True,save=False,scale='linlin',labelposition="inside",avoidLastStep=True,plotLin=False):
     """Plots success rate vs bead size for one or more instances. Also compares limited with not limited if bothLimitedAndNot is True.
     m_list is bead size/step length, can be a list"""
     instances = list(instances) # require list
@@ -1205,7 +1217,7 @@ def plot_success_rate_vs_r(instances,nsteps=10,limited=True,bothLimitedAndNot=Fa
     if avoidLastStep is True:
         fileName += " avoidLastStep"
     print(fileName)
-    plot2D(title,"Step length", "Success rate", list(r_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
+    plot2D(title,"Step length", "Success rate", list(r_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition,plotLin=plotLin)
     return r_range, success_rates
 
 def plot_multiple_end_to_end_distances(instances,types_of_walks=[0,1,2,3],data=[0,1,2],nwalks=1000,nsteps_list=range(5,14,1),avoidLastStep=True,labelposition="inside",show=True,save=False):
@@ -1305,6 +1317,33 @@ def plot_multiple_end_to_end_distances(instances,types_of_walks=[0,1,2,3],data=[
         plt.show()
     return
 
+
+def plot_linreg(xs,ys,name,scale="linlin",plotLin=False):
+    global plt
+    def round_to_1(x):
+        return round(x, -int(np.floor(np.log10(abs(x)))))
+    textstr = ""
+    for i in range(len(ys)):
+        p,cov = np.polyfit(xs[i],ys[i],1,cov=True)
+        sdev=np.sqrt(np.diag(cov))
+        if sdev[0]<0.1 or sdev[1]<0.1:
+            textstr+="\n"+name[i]+"&"+str(round(p[0],2)) +"&"+ str(round_to_1(sdev[0]))+"&" + str(round(p[1],2)) + "&"+ str(round_to_1(sdev[1]))+"\\\\"
+        else:
+            textstr+="\n"+name[i]+"&"+str(round(p[0],2)) +"&"+ str(round(sdev[0],2))+"&" + str(round(p[1],2)) + "&"+ str(round(sdev[1],2))+"\\\\"
+        if plotLin is True:
+            if scale=="loglog":
+                x = [10**xs[i][j] for j in range(len(xs[i]))]
+                y = [10 ** p[1] * x[i]**(p[0]) for i in range(len(x))]
+            elif scale =="linlog":
+                x = xs[i]
+                y = [10 ** p[1] * 10 ** (p[0] * x[i]) for i in range(len(x))]
+            elif scale == "linlin":
+                x=xs[i]
+                y=ys[i]
+            plt.plot(x,y,color="red",alpha=0.5)
+    print_out = '\hline\nLine & k & k s.dev.& m & m s.dev.\\\\\n\hline' + textstr + '\n\hline'
+    print(print_out)
+    return
 
 def main():
     gridwalk = Grid_walker()
@@ -1421,7 +1460,7 @@ def main():
     #-------------------------------------#
     # # SUCCESS RATE VS NUMBER OF STEPS # #
     #-------------------------------------#
-    nsteps_list = range(1,16,1)
+    nsteps_list = range(2,5,1)
     ## FREELY JOINTED, AVOID LAST BEAD
     m_list1 = np.arange(0.099,0.51,0.1)
     # Limited, lin-lin and lin-log scale, comparison multiple rho/r
@@ -1554,6 +1593,7 @@ def main():
 
     ### NORMPLOTS
     #GRID
+    #gridwalk.plot_etedist_normal_parameters_multiple_methods(plotLin=True,scale="loglog",save=True)
     #gridwalk.normplot(nwalks=100,nsteps=100)
     #gridwalk.normplot(nwalks=100,nsteps=100,avoid=True,limited=True)
 
