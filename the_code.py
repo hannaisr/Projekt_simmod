@@ -10,7 +10,7 @@ from scipy import stats as scipy_stats
 class Walker():
     """Walked positions are stored in a list"""
     # Initiate list of visited points
-    rho0 = 0.99 # size of first bead, the very least 1/2 step length.
+    rho0 = 0.3 # size of first bead, the very least 1/2 step length.
     # Modify generate_rho() to manage method for generating the sizes of the other beads
     origin = [0,0,0,rho0] # position and bead size are stored in list
     visited_points = [origin]
@@ -163,14 +163,13 @@ class Walker():
             # print("Finished",i+1,"walks")
         return etedist_list, length_list
 
-    def plot_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False,limited=False,forced=False,holdon=False,avoidLastStep=True):
+    def plot_multiple_end_to_end_distances(self,nwalks=10,nsteps_list=range(5,14,1),avoid=False,limited=False,forced=False,holdon=False,avoidLastStep=True):
         """Plots end-to-end distance RMS, RMS fluctuation and standard error estimate for nwalks walks by chain length"""
         rms=[]
         rms_fluc = []
         std_err = []
         chain_lengths = []
-        step_numbers = range(5,14,1)
-        for nsteps in step_numbers:
+        for nsteps in nsteps_list:
             print(nsteps)
             etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,forced=forced,avoidLastStep=avoidLastStep)
             #RMS end-to-end distance
@@ -179,8 +178,7 @@ class Walker():
             rms_fluc.append(np.sqrt((np.mean(np.square(etedist_list))-np.mean(etedist_list)**2)*nwalks/(nwalks-1)))
             #Standard error estimate
             std_err.append(np.sqrt((np.mean(np.square(etedist_list))-np.mean(etedist_list)**2)/(nwalks-1)))
-            chain_lengths.append(self.length)
-        # chain_lengths = [i * self.r for i in step_numbers]
+        chain_lengths = [i * self.my for i in nsteps_list]
         if holdon==True:
             return chain_lengths,rms,rms_fluc,std_err
         else:
@@ -203,7 +201,7 @@ class Walker():
             plt.suptitle("End-to-end distance measures vs chain length \n for " +str(nwalks)+" walks of "+self.name+ext)
             plt.show()
 
-    def plot_multiple_end_to_end_distances_holdon(self,nwalks=10,show=True):
+    def plot_multiple_end_to_end_distances_holdon(self,nwalks=100,show=True):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.set_xlabel("Chain length")
@@ -1168,75 +1166,100 @@ def plot_success_rate_vs_r(instances,nsteps=10,limited=True,bothLimitedAndNot=Fa
     plot2D(title,"Step length", "Success rate", list(r_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition)
     return r_range, success_rates
 
-def plot_multiple_end_to_end_distances(instances,types_of_walks=[0,1,2,3],nwalks=10):
-    """For types_of_walks:
-        0 = non-self avoiding (regular)
-        1 = self-avoiding
-        2 = self-avoiding, limited
-        3 = self-avoiding, forced"""
+def plot_multiple_end_to_end_distances(instances,types_of_walks=[0,1,2,3],data=[0,1,2],nwalks=1000,nsteps_list=range(5,14,1),avoidLastStep=True,labelposition="inside",show=True,save=False):
+    """types_of_walks:
+            0 = non-self avoiding (regular)
+            1 = self-avoiding
+            2 = self-avoiding, limited
+            3 = self-avoiding, forced
+        data:
+            0 = rms
+            1 = rms_fluc
+            2 = std_err"""
     instances = list(instances)
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_xlabel("Chain length")
-    title="End-to-end distance measures vs chain length \n for " +str(nwalks)+" walks of "
-    for instance in instances:
-        title += instance.name + ', '
-    if len(instances)==1 and instances[0].shortname!=grid:
-        title += '\n bead radius '+ str(instances[0].rho0)
+    title="End-to-end distance measures vs chain length, \n" +str(nwalks)+" walks"
+    if len(instances)==1 and instances[0].shortname!='grid':
+        title += ', bead radius '+ str(instances[0].rho0)
     else:
         title = title[:-2]
     plt.suptitle(title)
-    cmap=get_cmap(n=4)
+    cmap=get_cmap(n=len(types_of_walks)*len(instances))
 
+    j = 0
     for instance in instances:
         #Non-self avoid
         if 0 in types_of_walks:
-            i=0
-            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(nwalks=nwalks,avoid=False,limited=False,forced=False,holdon=True)
-            ax.plot(chain_lengths, rms, label="Non self avoiding "+instance.shortname,color=cmap(i))
-            ax.plot(chain_lengths, rms_fluc,color=cmap(i))
-            ax.plot(chain_lengths, std_err,color=cmap(i))
+            i=j
+            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(nsteps_list=nsteps_list,nwalks=nwalks,avoid=False,limited=False,forced=False,holdon=True,avoidLastStep=avoidLastStep)
+            if 0 in data:
+                ax.plot(chain_lengths, rms, label="Non self avoiding, "+instance.shortname,color=cmap(i))
+            if 1 in data:
+                ax.plot(chain_lengths, rms_fluc,label="Non self avoiding, "+instance.shortname if not 0 in data else None, color=cmap(i))
+            if 2 in data:
+                ax.plot(chain_lengths, std_err,label="Non self avoiding, "+instance.shortname if not 0 in data and not 1 in data else None,color=cmap(i))
 
         #Self avoid
         if 1 in types_of_walks:
-            i=1
-            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(nwalks=nwalks,avoid=True,limited=False,forced=False,holdon=True)
-            ax.plot(chain_lengths, rms, label="Self avoiding "+instance.shortname,color=cmap(i))
-            ax.plot(chain_lengths, rms_fluc,color=cmap(i))
-            ax.plot(chain_lengths, std_err,color=cmap(i))
+            i=j+1
+            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(nsteps_list=nsteps_list,nwalks=nwalks,avoid=True,limited=False,forced=False,holdon=True,avoidLastStep=avoidLastStep)
+            if 0 in data:
+                ax.plot(chain_lengths, rms, label="Self avoiding, "+instance.shortname,color=cmap(i))
+            if 1 in data:
+                ax.plot(chain_lengths, rms_fluc,label="Self avoiding, "+instance.shortname if not 0 in data else None,color=cmap(i))
+            if 2 in data:
+                ax.plot(chain_lengths, std_err,label="Self avoiding, "+instance.shortname if not 0 in data and not 1 in data else None, color=cmap(i))
 
         #Self avoid:limited
         if 2 in types_of_walks:
-            i=2
-            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(nwalks=nwalks,avoid=True,limited=True,forced=False,holdon=True)
-            ax.plot(chain_lengths, rms, label="Self avoiding: limited "+instance.shortname,color=cmap(i))
-            ax.plot(chain_lengths, rms_fluc,color=cmap(i))
-            ax.plot(chain_lengths, std_err,color=cmap(i))
+            i=j+2
+            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(nsteps_list=nsteps_list,nwalks=nwalks,avoid=True,limited=True,forced=False,holdon=True,avoidLastStep=avoidLastStep)
+            if 0 in data:
+                ax.plot(chain_lengths, rms, label="Self avoiding: limited, "+instance.shortname,color=cmap(i))
+            if 1 in data:
+                ax.plot(chain_lengths, rms_fluc,label="Self avoiding: limited, "+instance.shortname if not 0 in data else None, color=cmap(i))
+            if 2 in data:
+                ax.plot(chain_lengths, std_err,label="Self avoiding: limited, "+instance.shortname if not 0 in data and not 1 in data else None,color=cmap(i))
 
         #Self avoid:forced
         if 3 in types_of_walks:
-            i=3
-            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(nwalks=nwalks,avoid=True,limited=True,forced=True,holdon=True)
-            ax.plot(chain_lengths, rms, label="Self avoiding: forced "+instance.shortname,color=cmap(i))
-            ax.plot(chain_lengths, rms_fluc,color=cmap(i))
-            ax.plot(chain_lengths, std_err,color=cmap(i))
+            i=j+3
+            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(nsteps_list=nsteps_list,nwalks=nwalks,avoid=True,limited=True,forced=True,holdon=True,avoidLastStep=avoidLastStep)
+            if 0 in data:
+                ax.plot(chain_lengths, rms, label="Self avoiding: forced, "+instance.shortname,color=cmap(i))
+            if 1 in data:
+                ax.plot(chain_lengths, rms_fluc,label="Self avoiding: forced, "+instance.shortname if not 0 in data else None,color=cmap(i))
+            if 2 in data:
+                ax.plot(chain_lengths, std_err,label="Self avoiding: forced, "+instance.shortname if not 0 in data and not 1 in data else None, color=cmap(i))
+        j+=1
 
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-    textstr="RMS"
-    # place a text box in upper left in axes coords
-    ax.text(0.90, 0.95, textstr, transform=ax.transAxes, fontsize=10,
-            verticalalignment='top', bbox=props)
-    textstr = "RMS\nfluctuation"
-    # place a text box in upper left in axes coords
-    ax.text(0.90, 0.3, textstr, transform=ax.transAxes, fontsize=10,
-            verticalalignment='top', bbox=props)
-    textstr = "Standard error\nestimate"
-    # place a text box in upper left in axes coords
-    ax.text(0.90, 0.1, textstr, transform=ax.transAxes, fontsize=10,
-            verticalalignment='top', bbox=props)
+    if 0 in data:
+        textstr="RMS"
+        # place a text box in upper left in axes coords
+        ax.text(0.90, 0.95, textstr, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', bbox=props)
+    if 1 in data:
+        textstr = "RMS\nfluctuation"
+        # place a text box in upper left in axes coords
+        ax.text(0.90, 0.3, textstr, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', bbox=props)
+    if 2 in data:
+        textstr = "Standard error\nestimate"
+        # place a text box in upper left in axes coords
+        ax.text(0.90, 0.1, textstr, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', bbox=props)
 
-    plt.legend()
-    plt.show()
+    if labelposition=="inside":
+        plt.legend()
+    elif labelposition=="outside":
+        plt.legend(bbox_to_anchor=(1.05,1),loc="upper left")
+    if save==True:
+        plt.savefig(title+str(types_of_walks)+str(data),bbox_inches='tight')
+    if show==True:
+        plt.show()
     return
 
 
@@ -1289,7 +1312,8 @@ def main():
     # chainwalk.plot_the_walk(beads=False)
     # chainwalk.walk_with_self_avoid(nsteps=20,limited=True,avoidLastStep=False)
     # chainwalk.plot_the_walk(beads=True)
-    chainwalk.test_limited_option(limited=True)
+    # chainwalk.test_limited_option(limited=True)
+
     #-Other
     # print(chainwalk.get_success_rate(nsteps=10,limited=True))
     # print(chainwalk.get_success_rate(nsteps=10,limited=False))
@@ -1351,11 +1375,6 @@ def main():
     scales = ['linlin','linlog']
 
 
-
-
-
-
-
     #-------------------------------------#
     # # SUCCESS RATE VS NUMBER OF STEPS # #
     #-------------------------------------#
@@ -1363,7 +1382,7 @@ def main():
     ## FREELY JOINTED, AVOID LAST BEAD
     m_list1 = np.arange(0.099,0.51,0.1)
     # # Limited, lin-lin and lin-log scale, comparison multiple rho/r
-    # plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',limited=True,nsteps_list=nsteps_list,m_list=m_list1,show=False,save=True,scale=scales)
+    # plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',limited=True,nsteps_list=nsteps_list,m_list=m_list1,show=True,save=True,scale=scales)
     # # Regular, lin-lin and lin-log scale, comparison multiple rho/r
     # plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',limited=False,nsteps_list=nsteps_list,m_list=m_list1,show=False,save=True,scale=scales)
     # # Complarison limited and regular
@@ -1464,7 +1483,25 @@ def main():
     # # # END-TO-END-DISTANCE # # #
     # #-------------------------# #
 
-    # plot_multiple_end_to_end_distances([gridwalk,chainwalk])
+    # Compare grid with FJ chain, not self avoiding
+    plot_multiple_end_to_end_distances([gridwalk,chainwalk],types_of_walks=[0],data=[0,1,2],nsteps_list=range(5,100,5),nwalks=5000,show=False,save=True)
+    # Compare grid with FJ chain, self avoiding
+    plot_multiple_end_to_end_distances([gridwalk,chainwalk],types_of_walks=[1],data=[0,1,2],nsteps_list=range(5,20,2),nwalks=5000,show=False,save=True)
+
+    # Compare self avoiding with limited self avoiding, grid
+    plot_multiple_end_to_end_distances([gridwalk],types_of_walks=[1,2],data=[0,1,2],nsteps_list=range(5,20,2),nwalks=5000,show=False,save=True)
+    # Compare limited self avoiding with forced self avoiding, grid
+    plot_multiple_end_to_end_distances([gridwalk],types_of_walks=[1,3],data=[0,1,2],nsteps_list=range(5,20,2),nwalks=5000,show=True,save=True)
+
+
+    # plot_multiple_end_to_end_distances([gridwalk,chainwalk,chainwalk_stepl_variations],types_of_walks=[0],data=[0],nwalks=1000,save=True)
+    # plot_multiple_end_to_end_distances([gridwalk,chainwalk,chainwalk_stepl_variations],types_of_walks=[1],data=[1],nwalks=1000,save=True)
+    # plot_multiple_end_to_end_distances([gridwalk,chainwalk,chainwalk_stepl_variations],types_of_walks=[2],data=[0],nwalks=1000,save=True)
+    # plot_multiple_end_to_end_distances([gridwalk,chainwalk,chainwalk_stepl_variations],types_of_walks=[3],data=[0],nwalks=1000,save=True)
+    # plot_multiple_end_to_end_distances([gridwalk,chainwalk,chainwalk_stepl_variations],types_of_walks=[0],data=[1],nwalks=1000,save=True)
+
+
+
 
     ### NORMPLOTS
     #GRID
@@ -1486,5 +1523,5 @@ def main():
 
 
     # gridwalk.plot_multiple_end_to_end_distances_holdon(show=False)
-    chainwalk.plot_multiple_end_to_end_distances_holdon()
+    # chainwalk.plot_multiple_end_to_end_distances_holdon()
 main()
