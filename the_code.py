@@ -890,95 +890,11 @@ def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linlin',sho
     if show is True:
         plt.show()
 
-def plot_success_rate_vs_nsteps(instances,limited=True,bothLimitedAndNot=False,nsteps_range=range(0,25,1),m_range=0.4,show=True,save=False,scale='linlin',labelposition="inside",avoidLastStep=True):
+def plot_success_rate_vs_choice(instances,choice='nsteps',limited=True,bothLimitedAndNot=False,nsteps_list=range(0,25,1),M=0.4,show=True,save=False,scale='linlin',labelposition="inside",avoidLastStep=True):
     """Plots success rate vs number of steps in walk for various instances, or just one. Also compares limited with not limited if bothLimitedAndNot is True.
     nsteps is the number of steps in each walk
-    m = rho/r_mean"""
-    instances = list(instances) # require list
-    success_rates = []
-    if bothLimitedAndNot is True:
-        limited = True
-    if type(m_range)==float or type(m_range)==int:
-        m_range = [m_range]
-    if type(scale) == str:
-        scale = [scale]
-
-    # Make plot title and fileName
-    title = "Success rate vs number of steps"
-    if len(instances)==1:
-        title+=",\n"+instances[0].name
-    if bothLimitedAndNot is False:
-        if limited is True:
-            title+=",\n limited walk"
-        else:
-            title+=",\n regular walk"
-    if avoidLastStep is False:
-        title += ",\n no collision between consecutive steps"
-    fileName = "SR vs nsteps"
-
-    # Make labels and store success rates
-    labels_list = []
-    for instance in instances:
-        for rho in m_range:
-            instance.rho0 = rho
-            # --- label generation ---
-            label = str()
-            if len(instances)!=1:
-                label += ", "+instance.shortname
-            if bothLimitedAndNot is True:
-                label += ", lim"
-            if instance.shortname[:2] == "FJ":
-                label += ", rho/r="+str(round(rho,3))
-            if len(label) > 2:
-                label = label[2:]   # Remove the comma and space at the beginning
-            labels_list.append(label)
-            # --- end of label generation ---
-            # Get success rates
-            SR = []
-            for nsteps in nsteps_range:
-                SR.append(instance.get_success_rate(nsteps,limited,avoidLastStep=avoidLastStep))
-                # print(nsteps)
-            success_rates.append(SR)
-
-            if bothLimitedAndNot is True:
-                # --- Label generation ---
-                label = str()
-                if len(instances)!=1:
-                    label += ", "+instance.shortname
-                label += ", reg"
-                if instance.shortname[:2]=="FJ":
-                    label += ", rho/r="+str(round(rho,3))
-                label = label[2:]
-                labels_list.append(label)
-                # --- end of label generation
-                # Success rate
-                SR = []
-                for nsteps in nsteps_range:
-                    SR.append(instance.get_success_rate(nsteps,limited=False,avoidLastStep=avoidLastStep))
-                    # print(nsteps)
-                success_rates.append(SR)
-            print(instance.name)
-
-    # Plot
-    for instance in instances:
-        fileName += " " + instance.shortname
-    if limited==True:
-        fileName += "lim"
-    if limited==False or bothLimitedAndNot==True:
-        fileName += "reg"
-    fileName = re.sub('\W+',' ',fileName)+" m" + str(m_range)
-    if avoidLastStep is True:
-        fileName += " avoidLastStep"
-    print("fileName:", fileName)
-    for sc in scale:
-        newFileName=fileName+" "+sc
-        plot2D(title,"Number of steps", "Success rate", list(nsteps_range), success_rates, labels_list,scale=sc,show=show,fileName=newFileName,save=save,labelposition=labelposition)
-    return nsteps_range, success_rates
-
-def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius",limited=True,bothLimitedAndNot=False,m_range=np.arange(0,1.0,0.05),show=True,save=False,scale='linlin',labelposition="outside",avoidLastStep=True,title=None,labels_list=None):
-    """Plots success rate vs bead size for one or more instances. Also compares limited with not limited if bothLimitedAndNot is True.
-    nsteps is the number of steps in each walk
-    m = rho/r"""
+    m = rho/r_mean (M is a list of these values to be tested)
+    choice = 'nsteps','bead radius', 'bead volume' or 'bead surface area'"""
     instances = list(instances) # require list
     success_rates = []
     if bothLimitedAndNot is True:
@@ -988,14 +904,32 @@ def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius"
         labels_list = []
     else:
         generate_labels = False
-    if type(scale)==str:
-        scale=[scale]
-    volume_list = m_range**3*4/3*np.pi
-    area_list = m_range**2*4*np.pi
+    if type(M)==float or type(M)==int:
+        M = [M]
+    if type(scale) == str:
+        scale = [scale]
+
+    if choice=='nsteps':
+        X = x_list = nsteps_list
+        comparisons = M
+        name_endings = 'number of steps'
+        xname = "Number of steps in walk"
+    else:
+        X = M
+        comparisons = nsteps_list
+        name_endings = choice
+        if choice == 'bead radius':
+            x_list = M
+        elif choice == 'bead volume':
+            x_list = M**3*4/3*np.pi
+        elif choice == 'bead surface area':
+            x_list = M**2*4*np.pi
+        xname = choice.capitalize()
+
 
     # Make plot title if no title has been provided
     if not title:
-        title = "Success rate vs bead" + size
+        title = "Success rate vs "+name_endings
         if len(instances)==1:
             title+=",\n"+instances[0].name
         if bothLimitedAndNot is False:
@@ -1005,79 +939,91 @@ def plot_success_rate_vs_bead_size(instances,nsteps_list=[5,10,15],size="radius"
                 title+=",\n regular walk"
         if avoidLastStep is False:
             title += ",\n no collision between consecutive steps"
-    fileName = "SR vs bead "+size
+        if len(comparisons)=1:
+            if choice=='nsteps':
+                title+='\n '+str(comparisons)+' steps'
+            else:
+                title+='\n rho/r='+str(comparisons)
+                title+=str(comparisons)
+        title = re.sub('\[*\]*','',title)
+    fileName = "SR vs "+choice
+
 
     # Make labels and store success rates
     for instance in instances:
-        instance.my = 1
-        instance.rho = 0.1
-        for nsteps in nsteps_list:
+        for c in comparisons:
+            if choice=='nsteps':    # Update rho0 if the values of this is what should be compared
+                instance.rho0 = c*instance.my
+            else:
+                nsteps = c
             # --- label generation ---
-            label = str()
-            if len(instances)!=1:
-                label += ", "+instance.shortname
-            if bothLimitedAndNot==True:
-                label += ", lim"
-            if len(nsteps_list)>1:
-                label += ", "+str(nsteps)+" steps"
-            if len(label) > 2:
-                label = label[2:]   # Remove the comma and space at the beginning
-            labels_list.append(label)
+            if generate_labels is True:
+                label = str()
+                if len(instances)!=1:
+                    label += ", "+instance.shortname
+                if bothLimitedAndNot is True:
+                    label += ", lim"
+                if len(comparisons)>1:
+                    if choice=='nsteps':
+                        label += ", rho/r="+str(round(c,3))
+                    else:
+                        label+=", "+str(c)+" steps"
+                if len(label) > 2:
+                    label = label[2:]   # Remove the comma and space at the beginning
+                labels_list.append(label)
             # --- end of label generation ---
-            # Success rates
+            # Get success rates
             SR = []
-            for m in m_range:
-                instance.rho0 = m*instance.my
-                SR.append(instance.get_success_rate(nsteps,limited,avoidLastStep=avoidLastStep))
-                # print(m)
+            for x in X:
+                if choice=='nsteps':
+                    nsteps=x
+                else:
+                    instance.rho0=x*instance.my
+                SR.append(instance.get_success_rate(nsteps=nsteps,limited,avoidLastStep=avoidLastStep))
+                # print(nsteps)
             success_rates.append(SR)
+
             if bothLimitedAndNot is True:
                 # --- Label generation ---
-                if generate_labels:
-                    label = str()
-                    if len(instances)!=1:
-                        label += ", "+instance.shortname
-                    label += ", reg"
-                    if len(nsteps_list)>1:
-                        label += ", "+str(nsteps)+" steps"
-                    label = label[2:]
-                    labels_list.append(label)
-                # --- end of label generation
+                label = str()
+                if len(instances)!=1:
+                    label += ", "+instance.shortname
+                label += ", reg"
+                if len(comparisons)>1:
+                    if choice=='nsteps':
+                        label += ", rho/r="+str(round(c,3))
+                    else:
+                        label+=", "+str(c)+" steps"
+                label = label[2:]
+                labels_list.append(label)
+                # --- end of label generation ---
+                # Success rate
                 SR = []
-                for m in m_range:
-                    instance.rho0 = m*instance.my
-                    SR.append(instance.get_success_rate(nsteps,limited=False,avoidLastStep=avoidLastStep))
-                    # print(m)
+                for x in X:
+                    if choice=='nsteps':
+                        nsteps=choice
+                    else:
+                        instance.rho0=x*instance.my
+                    SR.append(instance.get_success_rate(nsteps=nsteps,limited=False,avoidLastStep=avoidLastStep))
+                    # print(nsteps)
                 success_rates.append(SR)
-        print(instance.name)
-
-    if size=="volume":
-        x_list = list(volume_list)
-        xname = "Bead volume"
-    elif size=="area":
-        x_list = list(area_list)
-        xname = "Bead surface area"
-    else:
-        x_list = list(m_range)
-        xname = "Bead radius/step length"
+            print(instance.name)
 
     # Plot
     for instance in instances:
-        fileName += " " + instance.shortname + " "
+        fileName += " " + instance.shortname
     if limited==True:
-        fileName += "lim"
+        fileName += " lim"
     if limited==False or bothLimitedAndNot==True:
-        fileName += "reg"
-
-    fileName += " steps"+str(nsteps_list)
+        fileName += " reg"
+    fileName +=" m" + str(M) + " nsteps"+str(nsteps_list)
     if avoidLastStep is True:
         fileName += " avoidLastStep"
-    fileName = re.sub('\W+',' ',fileName)
-    print(fileName)
+    fileName = re.sub('\W+','_',fileName)
     for sc in scale:
-        newFileName = fileName + " " + sc
-        plot2D(title, xname, "Success rate", x_list, success_rates, labels_list,scale=sc,show=show,fileName=newFileName,save=save,labelposition=labelposition)
-    return m_range, success_rates
+        newFileName=fileName+" "+sc
+        plot2D(title,xname, "success rate", x_list, success_rates, labels_list,scale=sc,show=show,fileName=newFileName,save=save,labelposition=labelposition)
+    return x_list, success_rates
 
 def plot_success_rate_vs_r(instances,nsteps=10,limited=True,bothLimitedAndNot=False,r_range=np.arange(1,10,1),M=0.4,show=True,save=False,scale='linlin',labelposition="inside",avoidLastStep=True):
     """Plots success rate vs bead size for one or more instances. Also compares limited with not limited if bothLimitedAndNot is True.
@@ -1259,49 +1205,49 @@ def main():
     ## FREELY JOINTED, AVOID LAST BEAD
     m_range1 = np.arange(0.099,0.51,0.1)
     # # Limited, lin-lin and lin-log scale, comparison multiple rho/r
-    # plot_success_rate_vs_nsteps([chainwalk],limited=True,nsteps_range=nsteps_range,m_range=m_range1,show=False,save=True,scale=scales)
+    # plot_success_rate_vs_choice([chainwalk],choice='nsteps',limited=True,nsteps_range=nsteps_range,m_range=m_range1,show=False,save=True,scale=scales)
     # # Regular, lin-lin and lin-log scale, comparison multiple rho/r
-    # plot_success_rate_vs_nsteps([chainwalk],limited=False,nsteps_range=nsteps_range,m_range=m_range1,show=False,save=True,scale=scales)
+    # plot_success_rate_vs_choice([chainwalk],choice='nsteps',limited=False,nsteps_range=nsteps_range,m_range=m_range1,show=False,save=True,scale=scales)
     # # Complarison limited and regular
-    # plot_success_rate_vs_nsteps([chainwalk],bothLimitedAndNot=True,nsteps_range=nsteps_range,m_range=0.499,show=False,save=True,scale=scales)
+    # plot_success_rate_vs_choice([chainwalk],choice='nsteps',bothLimitedAndNot=True,nsteps_range=nsteps_range,m_range=0.499,show=False,save=True,scale=scales)
     #
     # # ## FREELY JOINTED, DON'T AVOID LAST BEAD
     # m_range2 = np.arange(0.1,1.0,0.1)
     # # Limited, lin-lin and lin-log scale, comparison multiple rho/r
-    # plot_success_rate_vs_nsteps([chainwalk],limited=True,nsteps_range=nsteps_range,m_range=m_range2,show=False,save=True,scale=scales,avoidLastStep=False,labelposition="outside")
+    # plot_success_rate_vs_choice([chainwalk],choice='nsteps',limited=True,nsteps_range=nsteps_range,m_range=m_range2,show=False,save=True,scale=scales,avoidLastStep=False,labelposition="outside")
     # # Regular, lin-lin and lin-log scale, comparison multiple rho/r
-    # plot_success_rate_vs_nsteps([chainwalk],limited=False,nsteps_range=nsteps_range,m_range=m_range2,show=False,save=True,scale=scales,avoidLastStep=False,labelposition="outside")
+    # plot_success_rate_vs_choice([chainwalk],choice='nsteps',limited=False,nsteps_range=nsteps_range,m_range=m_range2,show=False,save=True,scale=scales,avoidLastStep=False,labelposition="outside")
     # # Complarison limited and regular
-    # plot_success_rate_vs_nsteps([chainwalk],bothLimitedAndNot=True,nsteps_range=nsteps_range,m_range=0.499,show=False,save=True,scale=scales,avoidLastStep=False)
+    # plot_success_rate_vs_choice([chainwalk],choice='nsteps',bothLimitedAndNot=True,nsteps_range=nsteps_range,m_range=0.499,show=False,save=True,scale=scales,avoidLastStep=False)
     #
     # # ## FREELY JOINTED NORMAL VARIATED, AVOID LAST BEAD
     # m_range = m_range1
     # # Limited, lin-lin and lin-log scale, comparison multiple rho/r
-    # plot_success_rate_vs_nsteps([chainwalk_stepl_variations],limited=True,nsteps_range=nsteps_range,m_range=m_range,show=False,save=True,scale=scales)  # Limited is a (somewhat) straight line
+    # plot_success_rate_vs_choice([chainwalk_stepl_variations],choice='nsteps',limited=True,nsteps_range=nsteps_range,m_range=m_range,show=False,save=True,scale=scales)  # Limited is a (somewhat) straight line
     # # Regular, lin-lin and lin-log scale, comparison multiple rho/r
-    # plot_success_rate_vs_nsteps([chainwalk_stepl_variations],limited=False,nsteps_range=nsteps_range,m_range=m_range,show=False,save=True,scale=scales)  # Limited is a (somewhat) straight line
+    # plot_success_rate_vs_choice([chainwalk_stepl_variations],choice='nsteps',limited=False,nsteps_range=nsteps_range,m_range=m_range,show=False,save=True,scale=scales)  # Limited is a (somewhat) straight line
     # # Complarison limited and regular
-    # plot_success_rate_vs_nsteps([chainwalk],bothLimitedAndNot=True,nsteps_range=nsteps_range,m_range=0.499,show=False,save=True,scale=scales)
+    # plot_success_rate_vs_choice([chainwalk],choice='nsteps',bothLimitedAndNot=True,nsteps_range=nsteps_range,m_range=0.499,show=False,save=True,scale=scales)
     #
     #
     # ## FREELY JOINTED NORMAL VARIATED, DON'T AVOID LAST BEAD
     # # Limited, lin-lin and lin-log scale, comparison multiple rho/r
-    # plot_success_rate_vs_nsteps([chainwalk_stepl_variations],limited=True,nsteps_range=nsteps_range,m_range=np.arange(0.1,0.6,0.05),show=False,save=True,scale=scales,avoidLastStep=False,labelposition="outside")
+    # plot_success_rate_vs_choice([chainwalk_stepl_variations],choice='nsteps',limited=True,nsteps_range=nsteps_range,m_range=np.arange(0.1,0.6,0.05),show=False,save=True,scale=scales,avoidLastStep=False,labelposition="outside")
     # # Regular, lin-lin and lin-logscale, comparison multiple rho/r
-    # plot_success_rate_vs_nsteps([chainwalk_stepl_variations],limited=False,nsteps_range=nsteps_range,m_range=np.arange(0.1,0.6,0.05),show=False,save=True,scale=scales,avoidLastStep=False,labelposition="outside")
+    # plot_success_rate_vs_choice([chainwalk_stepl_variations],choice='nsteps',limited=False,nsteps_range=nsteps_range,m_range=np.arange(0.1,0.6,0.05),show=False,save=True,scale=scales,avoidLastStep=False,labelposition="outside")
     # # # Complarison limited and regular
-    # # plot_success_rate_vs_nsteps([chainwalk],bothLimitedAndNot=True,nsteps_range=nsteps_range,m_range=0.499,show=False,save=True,scale=scales,avoidLastStep=False)
+    # # plot_success_rate_vs_choice([chainwalk_stepl_variations],choice='nsteps',bothLimitedAndNot=True,nsteps_range=nsteps_range,m_range=0.499,show=False,save=True,scale=scales,avoidLastStep=False)
     #
     # ## GRID
     # # Limited, lin-lin and lin-log scale
-    # plot_success_rate_vs_nsteps([gridwalk],limited=True,nsteps_range=range(1,100,1),show=False,save=True,scale=scales)
+    # plot_success_rate_vs_choice([gridwalk],choice='nsteps',limited=True,nsteps_range=range(1,100,1),show=False,save=True,scale=scales)
     # # Regular, lin-lin and lin-log scale
-    # plot_success_rate_vs_nsteps([gridwalk],limited=False,nsteps_range=range(1,25,1),show=False,save=True,scale=scales)
+    # plot_success_rate_vs_choice([gridwalk],choice='nsteps',limited=False,nsteps_range=range(1,25,1),show=False,save=True,scale=scales)
     # # Comparison between limited and regular, lin-lin and lin-log scale
-    # plot_success_rate_vs_nsteps([gridwalk],bothLimitedAndNot=True,nsteps_range=range(1,25,1),show=True,save=True,scale=scales)
+    # plot_success_rate_vs_choice([gridwalk],choice='nsteps',bothLimitedAndNot=True,nsteps_range=range(1,25,1),show=True,save=True,scale=scales)
     #
     # ## COMPARISON OF ALL THREE METHODS
-    # plot_success_rate_vs_nsteps([gridwalk,chainwalk,chainwalk_stepl_variations],bothLimitedAndNot=True,nsteps_range=nsteps_range,m_range=0.499,show=True,save=True,scale=scales,labelposition="outside")
+    # plot_success_rate_vs_choice([gridwalk,chainwalk,chainwalk_stepl_variations],choice='nsteps',bothLimitedAndNot=True,nsteps_range=nsteps_range,m_range=0.499,show=True,save=True,scale=scales,labelposition="outside")
     #
     # #---------------------------------#
     # # # SUCCESS RATE VS BEAD RADIUS # #
@@ -1309,46 +1255,46 @@ def main():
     # # FREELY JOINTED, AVOID LAST BEAD
     # m_range1=np.arange(0.099,0.5,0.05)
     # # Limited, comparsion of different numbers of steps
-    # plot_success_rate_vs_bead_size([chainwalk],size="radius",limited=True,nsteps_list=np.arange(2,15,1),m_range=m_range1,show=False,save=True,labelposition="outside",avoidLastStep=True)
+    # plot_success_rate_vs_choice([chainwalk],choice='bead radius',limited=True,nsteps_list=np.arange(2,15,1),m_range=m_range1,show=False,save=True,labelposition="outside",avoidLastStep=True)
     # # Regular, comparsion of different numbers of steps
-    # plot_success_rate_vs_bead_size([chainwalk],size="radius",limited=False,nsteps_list=np.arange(2,15,1),m_range=m_range1,show=False,save=True,labelposition="outside",avoidLastStep=True)
+    # plot_success_rate_vs_choice([chainwalk],choice='bead radius',limited=False,nsteps_list=np.arange(2,15,1),m_range=m_range1,show=False,save=True,labelposition="outside",avoidLastStep=True)
     # # Comparison between regular and limited, 10 steps
-    # plot_success_rate_vs_bead_size([chainwalk],size="radius",bothLimitedAndNot=True,nsteps_list=[10],m_range=m_range1,show=False,save=True,labelposition="outside",avoidLastStep=True,title = "Comparison between success rates for limited and regular walk,\n freely jointed chain")
+    # plot_success_rate_vs_choice([chainwalk],choice='bead radius',bothLimitedAndNot=True,nsteps_list=[10],m_range=m_range1,show=False,save=True,labelposition="outside",avoidLastStep=True,title = "Comparison between success rates for limited and regular walk,\n freely jointed chain")
     #
     # # FREELY JOINTED, DON'T AVOID LAST BEAD
     # m_range2=np.arange(0.099,0.65,0.05)
     # # Limited, comparsion of different numbers of steps
-    # plot_success_rate_vs_bead_size([chainwalk],size="radius",limited=True,nsteps_list=np.arange(2,15,1),m_range=m_range2,show=False,save=True,labelposition="outside",avoidLastStep=False)
+    # plot_success_rate_vs_choice([chainwalk],choice='bead radius',limited=True,nsteps_list=np.arange(2,15,1),m_range=m_range2,show=False,save=True,labelposition="outside",avoidLastStep=False)
     # # Regular, comparsion of different numbers of steps
-    # plot_success_rate_vs_bead_size([chainwalk],size="radius",limited=False,nsteps_list=np.arange(2,15,1),m_range=m_range2,show=False,save=True,labelposition="outside",avoidLastStep=False)
+    # plot_success_rate_vs_choice([chainwalk],choice='bead radius',limited=False,nsteps_list=np.arange(2,15,1),m_range=m_range2,show=False,save=True,labelposition="outside",avoidLastStep=False)
     # # Comparison between regular and limited, 10 steps
-    # plot_success_rate_vs_bead_size([chainwalk],size="radius",bothLimitedAndNot=True,nsteps_list=[10],m_range=m_range2,show=False,save=True,labelposition="outside",avoidLastStep=False,title = "Comparison between success rates for limited and regular walk,\n freely jointed chain,\n no collision between consecutive steps")
+    # plot_success_rate_vs_choice([chainwalk],choice='bead radius',bothLimitedAndNot=True,nsteps_list=[10],m_range=m_range2,show=False,save=True,labelposition="outside",avoidLastStep=False,title = "Comparison between success rates for limited and regular walk,\n freely jointed chain,\n no collision between consecutive steps")
     #
     # # FREELY JOINTED NORMAL VARIATED, AVOID LAST BEAD
     # m_range=m_range1 #m_range=np.arange(0.099,0.5,0.00)
     # # Limited, comparsion of different numbers of steps
-    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True,nsteps_list=np.arange(2,15,1),m_range=m_range,show=False,save=True,labelposition="outside",avoidLastStep=True)
+    # plot_success_rate_vs_choice([chainwalk_stepl_variations],choice='bead radius',limited=True,nsteps_list=np.arange(2,15,1),m_range=m_range,show=False,save=True,labelposition="outside",avoidLastStep=True)
     # # Regular, comparsion of different numbers of steps
-    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False,nsteps_list=np.arange(2,15,1),m_range=m_range,show=False,save=True,labelposition="outside",avoidLastStep=True)
+    # plot_success_rate_vs_choice([chainwalk_stepl_variations],choice='bead radius',limited=False,nsteps_list=np.arange(2,15,1),m_range=m_range,show=False,save=True,labelposition="outside",avoidLastStep=True)
     # # Comparison between regular and limited, 10 steps
-    # plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",bothLimitedAndNot=True,nsteps_list=[10],m_range=m_range,show=True,save=True,labelposition="outside",avoidLastStep=True,title = "Comparison between success rates for limited and regular walk,\n freely jointed chain with normal variated step length")
+    # plot_success_rate_vs_choice([chainwalk_stepl_variations],choice='bead radius',bothLimitedAndNot=True,nsteps_list=[10],m_range=m_range,show=True,save=True,labelposition="outside",avoidLastStep=True,title = "Comparison between success rates for limited and regular walk,\n freely jointed chain with normal variated step length")
 
     # FREELY JOINTED NORMAL VARIATED, DON'T AVOID LAST BEAD
     m_range=m_range1 #np.arange(0.099,0.65,0.05)
     # Limited, comparsion of different numbers of steps
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=True,nsteps_list=np.arange(2,15,1),m_range=m_range,show=False,save=True,labelposition="outside",avoidLastStep=False)
+    plot_success_rate_vs_choice([chainwalk_stepl_variations],choice='bead radius',limited=True,nsteps_list=np.arange(2,15,1),m_range=m_range,show=False,save=True,labelposition="outside",avoidLastStep=False)
     # Regular, comparsion of different numbers of steps
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",limited=False,nsteps_list=np.arange(2,15,1),m_range=m_range,show=False,save=True,labelposition="outside",avoidLastStep=False)
+    plot_success_rate_vs_choice([chainwalk_stepl_variations],choice='bead radius',limited=False,nsteps_list=np.arange(2,15,1),m_range=m_range,show=False,save=True,labelposition="outside",avoidLastStep=False)
     # Comparison between regular and limited, 10 steps
-    plot_success_rate_vs_bead_size([chainwalk_stepl_variations],size="radius",bothLimitedAndNot=True,nsteps_list=[10],m_range=m_range,show=False,save=True,labelposition="outside",avoidLastStep=False,title = "Comparison between success rates for limited and regular walk,\n freely jointed chain with normal variated step length,\n no collision between consecutive steps")
+    plot_success_rate_vs_choice([chainwalk_stepl_variations],choice='bead radius',bothLimitedAndNot=True,nsteps_list=[10],m_range=m_range,show=False,save=True,labelposition="outside",avoidLastStep=False,title = "Comparison between success rates for limited and regular walk,\n freely jointed chain with normal variated step length,\n no collision between consecutive steps")
 
     ## COMPARISON BETWEEN FJ, FJ NORMVAR, LIMITED AND NOT,10 steps
     # # Avoid last step
-    # plot_success_rate_vs_bead_size([chainwalk,chainwalk_stepl_variations],size="radius",bothLimitedAndNot=True,nsteps_list=[10],m_range=np.arange(0,0.6,0.025),show=False,save=True,labelposition="outside",avoidLastStep=True)
+    # plot_success_rate_vs_choice([chainwalk,chainwalk_stepl_variations],choice='bead radius',bothLimitedAndNot=True,nsteps_list=[10],m_range=np.arange(0,0.6,0.025),show=False,save=True,labelposition="outside",avoidLastStep=True)
     # # Don't avoid last step
-    # plot_success_rate_vs_bead_size([chainwalk,chainwalk_stepl_variations],size="radius",bothLimitedAndNot=True,nsteps_list=[10],m_range=np.arange(0,1.01,0.05),show=True,save=True,labelposition="outside",avoidLastStep=False)
+    # plot_success_rate_vs_choice([chainwalk,chainwalk_stepl_variations],choice='bead radius',bothLimitedAndNot=True,nsteps_list=[10],m_range=np.arange(0,1.01,0.05),show=True,save=True,labelposition="outside",avoidLastStep=False)
     #
-    # plot_success_rate_vs_bead_size([chainwalk],size="radius",limited=True,nsteps_list=[20],m_range=np.arange(0,2.01,0.025),show=True,save=True,labelposition="inside",avoidLastStep=False)
+    # plot_success_rate_vs_choice([chainwalk],choice='bead radius',limited=True,nsteps_list=[20],m_range=np.arange(0,2.01,0.025),show=True,save=True,labelposition="inside",avoidLastStep=False)
     #
     # # Check if success rate depends on r or just the relation between r and rho
     # plot_success_rate_vs_r([chainwalk],r_range=np.arange(1,30,1),M=[0.2,0.3,0.4],show=True,save=True,scale='linlin')
