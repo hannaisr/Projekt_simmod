@@ -608,16 +608,15 @@ class Freely_jointed_chain(Walker):
             #In local coordinate system with "going back" vector as z axis:
             #Generate new bead center
             alpha = np.arccos((self.r ** 2 + self.last_r ** 2 - (2*self.visited_points[-2][3]) ** 2) / (2 * self.r * self.last_r))
-            theta = rnd.uniform(alpha, np.pi)
-            phi = rnd.uniform(0, 2*np.pi)
+            z_rnd = rnd.uniform(-1,np.cos(alpha))
+            theta = np.arccos(z_rnd)
+            phi = rnd.uniform(0, np.pi * 2)
 
             #Translate bead center position into global coordinate system.
             # First: define the local coordinate system in terms of the global
             z_hat = [np.sin(theta_back) * np.cos(phi_back), np.sin(theta_back) * np.sin(phi_back),np.cos(theta_back)]  # vector between the most recent two beads
-            y_hat = [-np.sin(phi_back), np.cos(phi_back), 0] # changed x->y
-        # x_hat = [x_hat[i]* 1 / np.sin(theta_back) for i in range(3)]  # Orthogonal to z_hat
-            x_hat = [-np.cos(theta_back) * np.cos(phi_back),-np.cos(theta_back) * np.sin(phi_back), np.sin(theta_back)] # Orthogonal to z_hat, x_hat #changed y->x
-        #    y_hat = [y_hat[i]* 1 / np.sin(theta_back) for i in range(3)]  # Orthogonal to z_hat
+            y_hat = [-np.sin(phi_back), np.cos(phi_back), 0] # Normalized and orthogonal to z_hat
+            x_hat = [-np.cos(theta_back) * np.cos(phi_back),-np.cos(theta_back) * np.sin(phi_back), np.sin(theta_back)] # Normalized and orthogonal to z_hat and y hat
 
             #print(sum([y_hat[i] * y_hat[i] for i in range(3)]))
             #Second: project the bead center position onto the global axes and translate it to origo
@@ -628,10 +627,11 @@ class Freely_jointed_chain(Walker):
             # vector_length = np.sqrt(sum([current_pos[i]**2 for i in range(3)]))
             # Define direction
             self.last_direction = [np.arctan(current_pos_origo[1]/current_pos_origo[0]), np.arccos(current_pos_origo[2]/self.r)]
-            # self.last_direction = [np.arccos(current_pos[2]/ vector_length),np.arctan(current_pos[1] / current_pos[0])]
         else:
-            theta = rnd.uniform(0,np.pi)
-            phi = rnd.uniform(0,2*np.pi)
+            z_rnd = rnd.uniform(-1, 1)
+            theta = np.arccos(z_rnd)
+            phi = rnd.uniform(0, np.pi * 2)
+
             self.last_direction = [theta,phi]
             # Update the coordinates
             current_pos[0] += self.r*np.sin(theta)*np.cos(phi)  # x
@@ -639,11 +639,85 @@ class Freely_jointed_chain(Walker):
             current_pos[2] += self.r*np.cos(theta)              # z
             current_pos[3] = rho
             ###---End of Suggestion---###
+
         # Update list of visited points
         self.visited_points.append(current_pos)
         self.length += self.r
         self.last_r = self.r
         return False
+
+    def test_limited_option(self,limited=True):
+        """Tests whether the limited-option actually limits options to > 2*rho from the neighbor of the most recent point"""
+        def walk_options_help(limited=True):
+            options=[]
+            current_pos = self.visited_points[-1][:]
+            # Get bead size
+            rho = self.rho0
+            if limited == True and self.last_direction != 0: #The last step
+
+                # Define direction to walk back the same way
+                theta_back = np.pi-self.last_direction[0]
+                phi_back = np.pi+self.last_direction[1]
+                #In local coordinate system with "going back" vector as z axis:
+                #Generate new bead center
+                self.alpha = np.arccos((self.r ** 2 + self.last_r ** 2 - (2*self.visited_points[-2][3]) ** 2) / (2 * self.r * self.last_r))
+                #TESTING STEP: Generate many options for the position of the next bead. All options are stored in
+                for i in range(1000):
+                    z_rnd = rnd.uniform(-1, np.cos(self.alpha))
+                    phi = rnd.uniform(0, np.pi * 2)
+                    theta = np.arccos(z_rnd)
+
+                    #Translate bead center position into global coordinate system.
+                    # First: define the local coordinate system in terms of the global
+                    z_hat = [np.sin(theta_back) * np.cos(phi_back), np.sin(theta_back) * np.sin(phi_back),np.cos(theta_back)]  # vector between the most recent two beads
+                    y_hat = [-np.sin(phi_back), np.cos(phi_back), 0] #Orthogonal
+                    x_hat = [-np.cos(theta_back) * np.cos(phi_back),-np.cos(theta_back) * np.sin(phi_back), np.sin(theta_back)] #Orthogonal
+                    #Second: project the bead center position onto the global axes and translate it to origo
+                    option_direction = [self.r*(np.cos(theta)*z_hat[i]+np.sin(theta)*np.cos(phi)*y_hat[i]+np.sin(theta)*np.sin(phi)*x_hat[i]) for i in range(3)]
+                    option = [current_pos[i] + option_direction[i] for i in range(3)]
+                    options.append(option)
+                current_pos=option
+                current_pos.append(self.rho0)
+            elif limited==False and self.last_direction != 0:#The last step
+
+                for i in range(1000):
+                    option=[0,0,0,self.rho0]
+                    z_rnd = rnd.uniform(-1, 1)
+                    phi = rnd.uniform(0, np.pi * 2)
+                    theta = np.arccos(z_rnd)
+                    option[0] = current_pos[0]+self.r * np.sin(theta) * np.cos(phi)  # x
+                    option[1] = current_pos[1]+self.r * np.sin(theta) * np.sin(phi)  # y
+                    option[2] = current_pos[2]+z_rnd  # z
+                    options.append(option)
+                current_pos = option
+                current_pos.append(self.rho0)
+            else: #The first step
+                z_rnd = rnd.uniform(-1, 1)
+                phi = rnd.uniform(0, np.pi * 2)
+                theta = np.arccos(z_rnd)
+
+                self.last_direction = [theta,phi]
+                # Update the coordinates
+                current_pos[0] += self.r*np.sin(theta)*np.cos(phi)  # x
+                current_pos[1] += self.r*np.sin(theta)*np.sin(phi)  # y
+                current_pos[2] += z_rnd                             # z
+                current_pos[3] = rho
+            # Update list of visited points
+            self.visited_points.append(current_pos)
+            self.length += self.r
+            self.last_r = self.r
+            return options
+
+        #Generate the 3-pearl (2-steps) limited walk
+        self.restart()
+        for i in range(2):
+            options = walk_options_help(limited)
+        #Check to see the distance between the center of the first pearl and each option
+        dist=[]
+        last=self.visited_points[-3]
+        for opt in options:
+            dist.append(np.sqrt(sum([(opt[i]-last[i])**2 for i in range(3)])))
+        print("Distance between pearl 1 and options for pearl 3:\nmin: ",min(dist), ", 2*rho: ",2*self.rho0,", max: ",max(dist),", r:",self.r)
 
     def test_avoid(self,avoidLastStep=True):
         """Test if latest site is already occupied - continuous case"""
