@@ -972,21 +972,22 @@ def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linlin',sho
     if type(ylists[0])==list and type(xlists[0])!=list:
         n = len(ylists)
         xlists = [xlists]*n
-    # Make the plot
-    if type(xlists[0]) is list:
-        for i in range(len(xlists)):
-            plt.plot(xlists[i],ylists[i],label=labels_list[i])
-    else:
-        plt.plot(xlists,ylists)
 
     # Linear regression
-    #plotLin if one wnats to plot the lines, else just a printout
+    #plotLin if one wants to plot the lines, else just a printout
     if scale == "linlog":
         plot_linreg(xlists,np.log10(ylists),labels_list,scale,plotLin)
     elif scale == "loglog":
         plot_linreg(np.log10(xlists),np.log10(ylists),labels_list,scale,plotLin)
     elif scale == "linlin":
         plot_linreg(xlists,ylists,labels_list,scale,plotLin)
+
+    # Make the plot
+    if type(xlists[0]) is list:
+        for i in range(len(xlists)):
+            plt.plot(xlists[i],ylists[i],label=labels_list[i],alpha=1.0)
+    else:
+        plt.plot(xlists,ylists)
 
     # Generate labels
     if labels_list:
@@ -1037,7 +1038,8 @@ def plot_success_rate_vs_onXAxis(instances,onXAxis='nsteps',limited=True,bothLim
         scale = [scale]
 
     if onXAxis=='nsteps':
-        X = x_list = list(nsteps_list)
+        X = nsteps_list
+        x_list = nsteps_list
         comparisons = m_list
         name_endings = 'number of steps'
         xlabel = "Number of steps in walk"
@@ -1334,13 +1336,14 @@ def plot_linreg(xs,ys,name,scale="linlin",plotLin=False):
             if scale=="loglog":
                 x = [10**xs[i][j] for j in range(len(xs[i]))]
                 y = [10 ** p[1] * x[i]**(p[0]) for i in range(len(x))]
+                plt.plot(x,y,color="red",linestyle='--',alpha=0.5,label="LinReg" if i==0 else None)
             elif scale =="linlog":
                 x = xs[i]
                 y = [10 ** p[1] * 10 ** (p[0] * x[i]) for i in range(len(x))]
+                plt.plot(x,y,color="red",linestyle='--',alpha=0.5,label="LinReg" if i==0 else None)
             elif scale == "linlin":
                 x=xs[i]
                 y=ys[i]
-            plt.plot(x,y,color="red",alpha=0.5)
     print_out = '\hline\nLine & k & k s.dev.& m & m s.dev.\\\\\n\hline' + textstr + '\n\hline'
     print(print_out)
     return
@@ -1460,15 +1463,15 @@ def main():
     #-------------------------------------#
     # # SUCCESS RATE VS NUMBER OF STEPS # #
     #-------------------------------------#
-    nsteps_list = range(2,5,1)
+    nsteps_list = list(range(2,16,1))
     ## FREELY JOINTED, AVOID LAST BEAD
     m_list1 = np.arange(0.099,0.51,0.1)
     # Limited, lin-lin and lin-log scale, comparison multiple rho/r
-    plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',limited=True,nsteps_list=nsteps_list,m_list=m_list1,show=False,save=True,scale=scales)
+    # plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',limited=True,nsteps_list=nsteps_list,m_list=m_list1,show=True,save=True,scale=scales,plotLin=True)
     # Regular, lin-lin and lin-log scale, comparison multiple rho/r
-    plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',limited=False,nsteps_list=nsteps_list,m_list=m_list1,show=False,save=True,scale=scales)
+    plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',limited=False,nsteps_list=nsteps_list,m_list=m_list1,show=False,save=True,plotLin=True,scale=scales)
     # Complarison limited and regular
-    plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',bothLimitedAndNot=True,nsteps_list=nsteps_list,m_list=0.499,show=False,save=True,scale=scales)
+    plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',bothLimitedAndNot=True,nsteps_list=nsteps_list,m_list=0.499,show=False,save=True,plotLin=True,scale=scales)
 
     # ## FREELY JOINTED, DON'T AVOID LAST BEAD
     m_list2 = np.arange(0.1,1.0,0.1)
