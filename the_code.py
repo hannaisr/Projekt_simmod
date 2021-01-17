@@ -7,10 +7,6 @@ from scipy.stats import norm # histogram fitting
 from scipy.stats import normaltest
 from scipy import stats as scipy_stats
 
-import math
-import statistics as stats
-
-
 class Walker():
     """Walked positions are stored in a list"""
     # Initiate list of visited points
@@ -41,7 +37,7 @@ class Walker():
         for i in range(nsteps):
             self.walk_one_step(limited)
 
-    def walk_with_self_avoid_forced(self,nsteps=100,limited=True,maxfails=math.inf,avoidLastStep=True):
+    def walk_with_self_avoid_forced(self,nsteps=100,limited=True,maxfails=np.inf,avoidLastStep=True):
         """Walk nsteps steps of self-avoiding random walk, redoing each step until it is successful or it has failed tries_per_step times."""
 
         tries_per_step = 100 # Maximum number of times to try again if the step is unacceptable
@@ -67,7 +63,7 @@ class Walker():
                     break
         # print('Managed to walk', len(self.visited_points) - 1, 'steps')
 
-    def walk_with_self_avoid(self,nsteps=100,limited=True,maxfails=math.inf,avoidLastStep=True):
+    def walk_with_self_avoid(self,nsteps=100,limited=True,maxfails=np.inf,avoidLastStep=True):
         """Walk nsteps steps of self-avoiding random walk. Returns the number of walks that failed."""
         nfails = 0
 
