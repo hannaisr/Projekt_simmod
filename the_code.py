@@ -1355,7 +1355,7 @@ def plot_success_rate_vs_onXAxis(
                 SR = []
                 for x in X:
                     if onXAxis=='nsteps':
-                        nsteps=onXAxis
+                        nsteps=x
                     else:
                         instance.rho0=x*instance.my
                     SR.append(instance.get_success_rate(
@@ -1610,7 +1610,7 @@ def plot_multiple_end_to_end_distances(
 
 
 def plot_linreg(
-        xs,ys,name,scale="linlin",plotLin=False,savetofile="linregdata.txt",
+        xs,ys,name,scale="linlin",plotLin=False,savetofile=None,
         datatitle=None):
     """savetofile is name of file that the data should be saved in"""
     global plt
@@ -1648,7 +1648,7 @@ def plot_linreg(
               + textstr + '\n\hline')
     print(print_out)
     if savetofile:
-        linregdata.write('\n \n'+datatitle + '\n' + print_out)
+        linregdata.write('\n \n' + datatitle + '\n' + print_out)
     return
 
 def main():
@@ -1772,19 +1772,19 @@ def main():
     # Limited, lin-lin and lin-log scale, comparison multiple rho/r
     # print("Limited, lin-lin and lin-log scale, comparison multiple rho/r")
     # plot_success_rate_vs_onXAxis(
-        # [chainwalk],onXAxis='nsteps',limited=True,nsteps_list=nsteps_list,
-        # m_list=m_list1,show=False,save=True,scale=scales,plotLin=True)
+    #     [chainwalk],onXAxis='nsteps',limited=True,nsteps_list=nsteps_list,
+    #     m_list=m_list1,show=False,save=True,scale=scales,plotLin=True)
     # # Regular, lin-lin and lin-log scale, comparison multiple rho/r
     # print("Regular, lin-lin and lin-log scale, comparison multiple rho/r")
     # plot_success_rate_vs_onXAxis(
-        # [chainwalk],onXAxis='nsteps',limited=False,nsteps_list=nsteps_list,
-        # m_list=m_list1,show=False,save=True,plotLin=True,scale=scales)
+    #     [chainwalk],onXAxis='nsteps',limited=False,nsteps_list=nsteps_list,
+    #     m_list=m_list1,show=False,save=True,plotLin=True,scale=scales)
     # Complarison limited and regular
     print("Complarison limited and regular")
     plot_success_rate_vs_onXAxis(
         [chainwalk],onXAxis='nsteps',bothLimitedAndNot=True,
         nsteps_list=nsteps_list,m_list=0.499,show=True,save=True,plotLin=True,
-        scale=scales)
+        scale=scales,title="Comparison between limited and regular walk,\n freely jointed chain,\n rho/r="+str(0.499))
 
     # ## FREELY JOINTED, DON'T AVOID LAST BEAD
     m_list2 = np.arange(0.1,1.0,0.1)
