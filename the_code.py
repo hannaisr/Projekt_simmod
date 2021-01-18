@@ -37,10 +37,14 @@ class Walker():
         for i in range(nsteps):
             self.walk_one_step(limited)
 
-    def walk_with_self_avoid_forced(self,nsteps=100,limited=True,maxfails=np.inf,avoidLastStep=True):
-        """Walk nsteps steps of self-avoiding random walk, redoing each step until it is successful or it has failed tries_per_step times."""
-
-        tries_per_step = 100 # Maximum number of times to try again if the step is unacceptable
+    def walk_with_self_avoid_forced(
+            self,nsteps=100,limited=True,
+            maxfails=np.inf,avoidLastStep=True):
+        """Walk nsteps steps of self-avoiding random walk, redoing each step
+        until it is successful or it has failed tries_per_step times.
+        """
+        tries_per_step = 100 # Maximum number of times to try again
+            # if the step is unacceptable
 
         self.restart()
         try_again = True
@@ -50,7 +54,8 @@ class Walker():
             for i in range(nsteps):
                 for j in range(tries_per_step):
                     self.walk_one_step(limited)
-                    # Test if the site is already occupied, or if the step length is less than the bead diameter.
+                    # Test if the site is already occupied, or if the step
+                        # length is less than the bead diameter.
                     try_again=self.test_avoid(avoidLastStep=avoidLastStep)
                     if try_again is True:   # Remove last site and start again
                         self.visited_points.pop()
@@ -63,8 +68,11 @@ class Walker():
                     break
         # print('Managed to walk', len(self.visited_points) - 1, 'steps')
 
-    def walk_with_self_avoid(self,nsteps=100,limited=True,maxfails=np.inf,avoidLastStep=True):
-        """Walk nsteps steps of self-avoiding random walk. Returns the number of walks that failed."""
+    def walk_with_self_avoid(
+            self,nsteps=100,limited=True,
+            maxfails=np.inf,avoidLastStep=True):
+        """Walk nsteps steps of self-avoiding random walk. Returns the
+        number of walks that failed."""
         nfails = 0
 
         self.restart()
@@ -91,7 +99,8 @@ class Walker():
 
     def generate_rho(self):
         if self.variate_rho is True:
-            return(self.r-self.visited_points[-1][3]-0.0000001) # Current and last bead radii always cover the whole length of the step
+            return(self.r-self.visited_points[-1][3]-0.0000001) # Current and
+                #last bead radii always cover the whole length of the step
         else:
             return(self.rho0)
 
@@ -129,13 +138,18 @@ class Walker():
         return x,y,z,rho
 
     def get_success_rate(self,nsteps=20,limited=True,avoidLastStep=True):
-        """Calculates success rate from nsuccessful_walks number of successful walks."""
+        """Calculates success rate from nsuccessful_walks number of
+        successful walks.
+        """
         nfails = 0
         nsuccess = 0
         nwalks = 5000
         while (nfails+nsuccess) < nwalks:
-            maxfails = nwalks-(nsuccess+nfails) # Maximum number of failed attempts before breaking loop of self avoiding walk
-            nfails += self.walk_with_self_avoid(nsteps=nsteps,limited=limited,maxfails=maxfails,avoidLastStep=avoidLastStep)
+            maxfails = nwalks-(nsuccess+nfails) # Maximum number of failed
+                # attempts before breaking loop of self avoiding walk
+            nfails += self.walk_with_self_avoid(
+                nsteps=nsteps,limited=limited,maxfails=maxfails,
+                avoidLastStep=avoidLastStep)
             if nfails+nsuccess < nwalks:
                 nsuccess += 1
         return nsuccess/(nsuccess+nfails)
@@ -143,19 +157,27 @@ class Walker():
     def get_end_to_end_distance(self):
         """Calculate end-to-end distance of already walked walk."""
         last_point = self.visited_points[-1]
-        return np.sqrt((last_point[0]-self.origin[0])**2+(last_point[1]-self.origin[1])**2+(last_point[2]-self.origin[2])**2)
+        return np.sqrt((last_point[0] - self.origin[0])**2
+                      + (last_point[1] - self.origin[1])**2
+                      + (last_point[2] - self.origin[2])**2)
 
-    def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False,limited=True,forced=False,avoidLastStep=True):
-        """Returns a list of end-to-end distances and chain lengths for nwalks number of walks of length nsteps"""
+    def get_multiple_end_to_end_distances(
+            self,nsteps=100,nwalks=10,avoid=False,
+            limited=True,forced=False,avoidLastStep=True):
+        """Returns a list of end-to-end distances and
+        chain lengths for nwalks number of walks of length nsteps
+        """
         etedist_list = np.zeros(nwalks)
         length_list = np.zeros(nwalks)
         for i in range(nwalks):
             self.restart()
             if avoid is True:
                 if forced is True:
-                    self.walk_with_self_avoid_forced(nsteps=nsteps,limited=limited,avoidLastStep=avoidLastStep)
+                    self.walk_with_self_avoid_forced(
+                        nsteps=nsteps,limited=limited,avoidLastStep=avoidLastStep)
                 else:
-                    self.walk_with_self_avoid(nsteps=nsteps,limited=limited,avoidLastStep=avoidLastStep)
+                    self.walk_with_self_avoid(
+                        nsteps=nsteps,limited=limited,avoidLastStep=avoidLastStep)
             else:
                 self.walk_without_avoid(nsteps=nsteps)
             etedist_list[i] = self.get_end_to_end_distance()
@@ -163,23 +185,33 @@ class Walker():
             # print("Finished",i+1,"walks")
         return etedist_list, length_list
 
-    def plot_multiple_end_to_end_distances(self,nwalks=10,nsteps_list=range(5,14,1),avoid=False,limited=False,forced=False,holdon=False,avoidLastStep=True):
-        """Plots end-to-end distance RMS, RMS fluctuation and standard error estimate for nwalks walks by chain length"""
+    def plot_multiple_end_to_end_distances(
+            self,nwalks=10,nsteps_list=range(5,14,1),avoid=False,limited=False,
+            forced=False,holdon=False,avoidLastStep=True):
+        """Plots end-to-end distance RMS, RMS fluctuation and
+        standard error estimate for nwalks walks by chain length.
+        """
         rms=[]
         rms_fluc = []
         std_err = []
         chain_lengths = []
         for nsteps in nsteps_list:
             print(nsteps)
-            etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,forced=forced,avoidLastStep=avoidLastStep)
+            etedist_list, length_list = self.get_multiple_end_to_end_distances(
+                nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,
+                forced=forced,avoidLastStep=avoidLastStep)
             #RMS end-to-end distance
             rms.append(np.sqrt(np.mean(np.square(etedist_list))))
             #RMS fluctuation estimate
-            rms_fluc.append(np.sqrt((np.mean(np.square(etedist_list))-np.mean(etedist_list)**2)*nwalks/(nwalks-1)))
+            rms_fluc.append(np.sqrt((np.mean(np.square(etedist_list))
+                                    -np.mean(etedist_list)**2)
+                                    *nwalks/(nwalks-1)))
             #Standard error estimate
-            std_err.append(np.sqrt((np.mean(np.square(etedist_list))-np.mean(etedist_list)**2)/(nwalks-1)))
+            std_err.append(np.sqrt((np.mean(np.square(etedist_list))
+                                    -np.mean(etedist_list)**2)/(nwalks-1)))
         chain_lengths = [i * self.my for i in nsteps_list]
-        if holdon==True:
+
+        if holdon == True:
             return chain_lengths,rms,rms_fluc,std_err
         else:
             fig = plt.figure()
@@ -198,40 +230,48 @@ class Walker():
             if forced == True:
                 ext+=", forced"
 
-            plt.suptitle("End-to-end distance measures vs chain length \n for " +str(nwalks)+" walks of "+self.name+ext)
+            plt.suptitle(
+                "End-to-end distance measures vs chain length \n for "
+                + str(nwalks) + " walks of " + self.name + ext)
             plt.show()
 
     def plot_multiple_end_to_end_distances_holdon(self,nwalks=100,show=True):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.set_xlabel("Chain length")
-        plt.suptitle("End-to-end distance measures vs chain length \n for " +str(nwalks)+" walks of "+self.name+', bead radius='+str(self.rho0))
+        plt.suptitle("End-to-end distance measures vs chain length \n for "
+                    + str(nwalks) + " walks of " + self.name + ', bead radius='
+                    + str(self.rho0))
         cmap=get_cmap(n=4)
 
         #Non-self avoid
         i=0
-        chain_lengths, rms, rms_fluc, std_err = self.plot_multiple_end_to_end_distances(nwalks=nwalks,avoid=False,limited=False,forced=False,holdon=True)
+        chain_lengths, rms, rms_fluc, std_err = self.plot_multiple_end_to_end_distances(
+            nwalks=nwalks,avoid=False,limited=False,forced=False,holdon=True)
         ax.plot(chain_lengths, rms, label="Non self avoiding",color=cmap(i))
         ax.plot(chain_lengths, rms_fluc,color=cmap(i))
         ax.plot(chain_lengths, std_err,color=cmap(i))
 
         #Self avoid
         i=1
-        chain_lengths, rms, rms_fluc, std_err = self.plot_multiple_end_to_end_distances(nwalks=nwalks,avoid=True,limited=False,forced=False,holdon=True)
+        chain_lengths, rms, rms_fluc, std_err = self.plot_multiple_end_to_end_distances(
+            nwalks=nwalks,avoid=True,limited=False,forced=False,holdon=True)
         ax.plot(chain_lengths, rms, label="Self avoiding",color=cmap(i))
         ax.plot(chain_lengths, rms_fluc,color=cmap(i))
         ax.plot(chain_lengths, std_err,color=cmap(i))
 
         #Self avoid:limited
         i=2
-        chain_lengths, rms, rms_fluc, std_err = self.plot_multiple_end_to_end_distances(nwalks=nwalks,avoid=True,limited=True,forced=False,holdon=True)
+        chain_lengths, rms, rms_fluc, std_err = self.plot_multiple_end_to_end_distances(
+            nwalks=nwalks,avoid=True,limited=True,forced=False,holdon=True)
         ax.plot(chain_lengths, rms, label="Self avoiding: limited",color=cmap(i))
         ax.plot(chain_lengths, rms_fluc,color=cmap(i))
         ax.plot(chain_lengths, std_err,color=cmap(i))
 
         #Self avoid:forced
         i=3
-        chain_lengths, rms, rms_fluc, std_err = self.plot_multiple_end_to_end_distances(nwalks=nwalks,avoid=True,limited=True,forced=True,holdon=True)
+        chain_lengths, rms, rms_fluc, std_err = self.plot_multiple_end_to_end_distances(
+            nwalks=nwalks,avoid=True,limited=True,forced=True,holdon=True)
         ax.plot(chain_lengths, rms, label="Self avoiding: forced",color=cmap(i))
         ax.plot(chain_lengths, rms_fluc,color=cmap(i))
         ax.plot(chain_lengths, std_err,color=cmap(i))
@@ -256,21 +296,32 @@ class Walker():
             plt.show()
         return
 
-    def hist_quotient_length_etedist(self,nsteps=100,nwalks=10,avoid=False,limited=True,forced=False,avoidLastStep=True):
-        """Plots the quotient between total chain length and end-to-end distance. Returns list of the quotients"""
-        etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,forced=forced,avoidLastStep=avoidLastStep)
+    def hist_quotient_length_etedist(
+            self,nsteps=100,nwalks=10,avoid=False,limited=True,forced=False,
+            avoidLastStep=True):
+        """Plots the quotient between total chain length and end-to-end distance.
+        Returns list of the quotients.
+        """
+        etedist_list, length_list = self.get_multiple_end_to_end_distances(
+            nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,
+            forced=forced,avoidLastStep=avoidLastStep)
         quotients = [etedist_list[i]/length_list[i] for i in range(len(length_list))]
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.hist(x=quotients,bins=15)
-        ax.vlines(ymin=0,ymax=nwalks/5,x=np.mean(quotients),color='red',label="Mean")
+        ax.vlines(ymin=0,ymax=nwalks/5,x=np.mean(quotients),color='red',
+                  label="Mean")
         ax.set_xlabel("End-to-End distance/length")
         plt.legend()
         plt.show()
         return quotients
 
-    def plot_etedist_normal_parameters(self,nwalks=1000,avoid=False,limited=False,forced=False,show=True,avoidLastStep=True):
-        """Plots fitted mu and sigma for end-to-end distance vs length of chain. Returns lists of mus, sigmas, lengths and p-values"""
+    def plot_etedist_normal_parameters(
+            self,nwalks=1000,avoid=False,limited=False,forced=False,show=True,
+            avoidLastStep=True):
+        """Plots fitted mu and sigma for end-to-end distance vs length of chain.
+        Returns lists of mus, sigmas, lengths and p-values.
+        """
         etedist_lists = []
         nsteps_list = np.arange(2,25,1)
         length_list = list(nsteps_list*self.my)
@@ -279,7 +330,9 @@ class Walker():
         pval_list = []
         # Get end-to-end distances
         for nsteps in nsteps_list:
-            etedist_list, _ = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,forced=forced,avoidLastStep=avoidLastStep)
+            etedist_list, _ = self.get_multiple_end_to_end_distances(
+                nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,
+                forced=forced,avoidLastStep=avoidLastStep)
             [mu,sigma] = norm.fit(etedist_list)
             mu_list.append(mu)
             sigma_list.append(sigma)
@@ -287,9 +340,13 @@ class Walker():
             pval_list.append(p[1])
             print(nsteps,"nsteps finished")
         if limited:
-            title = "Normal distribution parameters vs mean chain length\n "+str(self.name)+", "+str(nwalks)+" walks per chain length, limited,\n "
+            title = ("Normal distribution parameters vs mean chain length\n "
+                    + str(self.name) + ", " + str(nwalks)
+                    + " walks per chain length, limited,\n ")
         else:
-            title = "Normal distribution parameters vs mean chain length\n "+str(self.name)+", "+str(nwalks)+" walks per chain length, not limited,\n "
+            title = ("Normal distribution parameters vs mean chain length\n "
+                    + str(self.name) + ", " + str(nwalks)
+                    + " walks per chain length, not limited,\n ")
         if forced is True:
             title += "forced "
         if avoid:
@@ -297,30 +354,58 @@ class Walker():
         else:
             title += "not self avoiding"
         labels = ["mu","sigma"]
-        plot2D(title,"Chain length",None,[length_list,length_list],[mu_list,sigma_list],labels,show=show)
+        plot2D(title,"Chain length",None,[length_list,length_list],
+               [mu_list,sigma_list],labels,show=show)
         print("List of mus:",mu_list,"\n List of sigmas:",sigma_list)
         return mu_list, sigma_list, length_list, pval_list
 
-    def plot_etedist_normal_parameters_multiple_methods(self,plotLin=False,scale="linlin",save=True):
-        """Plots end-to-end distance mu and sigma for different methods of random walk"""
-        mu1,sigma1,lenlist1,pval1 = self.plot_etedist_normal_parameters(limited=False,show=False)
-        mu3,sigma3,lenlist3,pval3 = self.plot_etedist_normal_parameters(avoid=True,limited=True,show=False)
-        mu4,sigma4,lenlist4,pval4 = self.plot_etedist_normal_parameters(limited=False,forced=True,avoid=True,show=False)
-        mu2,sigma2,lenlist2,pval2 = self.plot_etedist_normal_parameters(limited=False,avoid=True,forced=False,show=False)
-        plot2D("End-to-end distance mu vs chain length\n for "+str(self.name),"Chain length", "End-to-end distance mu", [lenlist1,lenlist2,lenlist3,lenlist4],[mu1,mu2,mu3,mu4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"],show=False,scale=scale,plotLin=plotLin,save=save)
-        plot2D("End-to-end distance sigma vs chain length\n for "+str(self.name),"Chain length", "End-to-end distance sigma", [lenlist1,lenlist2,lenlist3,lenlist4],[sigma1,sigma2,sigma3,sigma4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"],show=False,scale=scale,plotLin=plotLin,save=save)
-        plot2D("Normal distribution p-value \n for "+str(self.name),"Chain length", "P-value", [lenlist1,lenlist2,lenlist3,lenlist4],[pval1,pval2,pval3,pval4],["Not limited, not avoiding","Self avoiding", "Self avoiding limited","Forced self avoiding"],show=False,save=save)
+    def plot_etedist_normal_parameters_multiple_methods(
+            self,plotLin=False,scale="linlin",save=True):
+        """Plots end-to-end distance mu and sigma for different methods
+        of random walk
+        """
+        mu1,sigma1,lenlist1,pval1 = self.plot_etedist_normal_parameters(
+            limited=False,show=False)
+        mu3,sigma3,lenlist3,pval3 = self.plot_etedist_normal_parameters(
+            avoid=True,limited=True,show=False)
+        mu4,sigma4,lenlist4,pval4 = self.plot_etedist_normal_parameters(
+            limited=False,forced=True,avoid=True,show=False)
+        mu2,sigma2,lenlist2,pval2 = self.plot_etedist_normal_parameters(
+            limited=False,avoid=True,forced=False,show=False)
+        plot2D("End-to-end distance mu vs chain length\n for " + str(self.name),
+               "Chain length", "End-to-end distance mu",
+               [lenlist1,lenlist2,lenlist3,lenlist4],
+               [mu1,mu2,mu3,mu4],
+               ["Not limited, not avoiding","Self avoiding",
+               "Self avoiding limited","Forced self avoiding"],
+               show=False,scale=scale,plotLin=plotLin,save=save)
+        plot2D("End-to-end distance sigma vs chain length\n for " + str(self.name),
+               "Chain length", "End-to-end distance sigma",
+               [lenlist1,lenlist2,lenlist3,lenlist4],
+               [sigma1,sigma2,sigma3,sigma4],
+               ["Not limited, not avoiding","Self avoiding",
+               "Self avoiding limited","Forced self avoiding"],
+               show=False,scale=scale,plotLin=plotLin,save=save)
+        plot2D("Normal distribution p-value \n for " + str(self.name),
+               "Chain length", "P-value", [lenlist1,lenlist2,lenlist3,lenlist4],
+               [pval1,pval2,pval3,pval4],
+               ["Not limited, not avoiding","Self avoiding",
+               "Self avoiding limited","Forced self avoiding"],
+               show=False,save=save)
         plt.show()
 
     def get_spec_distance(self,spec='max'):
         """Calculate maximum distance between points in walked walk
-        spec can be 'max', 'median' or 'mean'"""
+        spec can be 'max', 'median' or 'mean'.
+        """
         dists = []
         counter = 0
         for i in self.visited_points:
             counter += 1
             for j in self.visited_points[counter:]:
-                dists.append(np.sqrt((i[0]-j[0])**2+(i[1]-j[1])**2+(i[2]-j[2])**2))
+                dists.append(np.sqrt((i[0]-j[0])**2
+                                   + (i[1]-j[1])**2
+                                   + (i[2]-j[2])**2))
         if spec == 'max':
             return max(dists)
         if spec == 'mean':
@@ -328,15 +413,19 @@ class Walker():
         if spec == 'median':
             return np.median(dists)
 
-    def get_mean_maximum_distance(self,avoid=False,limited=False,nsteps=15,nwalks=1000,whatiwant="mean",spec="max",avoidLastStep=True):
+    def get_mean_maximum_distance(
+            self,avoid=False,limited=False,nsteps=15,nwalks=1000,
+            whatiwant="mean",spec="max",avoidLastStep=True):
         """Calculate mean maximum difference for specific walk.
         Possible options for whatiwant:
         'mean' (returns mean value)
-        'stdev' (returns standard deviation)"""
+        'stdev' (returns standard deviation).
+        """
         maxdist_list = []
         for i in range(nwalks):
             if avoid is True:
-                self.walk_with_self_avoid(limited=limited,nsteps=nsteps,avoidLastStep=avoidLastStep)
+                self.walk_with_self_avoid(
+                    limited=limited,nsteps=nsteps,avoidLastStep=avoidLastStep)
             else:
                 self.walk_without_avoid(limited=limited,nsteps=nsteps)
             maxdist_list.append(self.get_spec_distance(spec=spec))
@@ -345,8 +434,9 @@ class Walker():
         if whatiwant=="stdev":
             return stdev(maxdist_list)
 
-    def plot_distance_between(self,maxSteps=15,avoid=False,limited=False,nwalks=1000,whatiwant="mean",spec="max"):
-
+    def plot_distance_between(
+            self,maxSteps=15,avoid=False,limited=False,nwalks=1000,
+            whatiwant="mean",spec="max"):
         fig = plt.figure()
         ax = fig.add_subplot(111)
 
@@ -365,18 +455,22 @@ class Walker():
                 print("rho=",rho)
                 self.rho0 = rho / 10
                 qs.append(self.rho0 / self.my)
-                dist.append(self.get_mean_maximum_distance(avoid=avoid,limited=limited,nsteps=nsteps,nwalks=nwalks,whatiwant=whatiwant,spec=spec))
+                dist.append(self.get_mean_maximum_distance(
+                    avoid=avoid,limited=limited,nsteps=nsteps,nwalks=nwalks,
+                    whatiwant=whatiwant,spec=spec))
             ax.plot(qs,dist,label="steps= "+str(nsteps),color=cmap(nsteps))
         plt.legend()
         plt.show()
 
-    def plot_success_rate_vs_nsteps(self,step_numbers=range(2,25,2),limited=True,avoidLastStep=True):
+    def plot_success_rate_vs_nsteps(
+            self,step_numbers=range(2,25,2),limited=True,avoidLastStep=True):
         """Gets success rate to number of steps in walk."""
         # step_numbers = range(10,120,10)   # Grid
         # step_numbers = range(1,25,5)        # Freely jointed
         success_rates = []
         for nsteps in step_numbers:
-            success_rates.append(self.get_success_rate(nsteps,limited,avoidLastStep=avoidLastStep))
+            success_rates.append(self.get_success_rate(
+                nsteps,limited,avoidLastStep=avoidLastStep))
             print(nsteps)
         title = "Success rate vs number of steps for \n"+str(self.name)+", "
         if limited is True:
@@ -387,8 +481,13 @@ class Walker():
         plt.show()
         return step_numbers,success_rates
 
-    def plot_bead_size_variation(self,nsteps=100,nwalks=10,my=True,rhos=np.arange(0.099,0.5,0.025),success=False,limited=False,forced=False,holdon=False,avoidLastStep=True):
-        """Plots the relationship between quotient bead size/my or sigma of step length and RMS End-to-End distance or success rate in self-avoiding chains"""
+    def plot_bead_size_variation(
+            self,nsteps=100,nwalks=10,my=True,rhos=np.arange(0.099,0.5,0.025),
+            success=False,limited=False,forced=False,holdon=False,
+            avoidLastStep=True):
+        """Plots the relationship between quotient bead size/my or sigma
+        of step length and RMS End-to-End distance or success rate in
+        self-avoiding chains"""
         qs=[] #Quotients bead size/expected value of step length
         rms=[]
         rms_fluc = []
@@ -409,15 +508,22 @@ class Walker():
             else: #Bead size by standard deviation
                 qs.append(self.rho0/self.sigma)
             if success==False:#y=RMS
-                etedist_list, length_list = self.get_multiple_end_to_end_distances(nsteps=nsteps, nwalks=nwalks, avoid=True, limited=limited,forced=forced,avoidLastStep=avoidLastStep)
+                etedist_list, length_list = self.get_multiple_end_to_end_distances(
+                    nsteps=nsteps, nwalks=nwalks, avoid=True,
+                    limited=limited,forced=forced,
+                    avoidLastStep=avoidLastStep)
                 # RMS end-to-end distance
                 rms.append(np.sqrt(np.mean(np.square(etedist_list))))
                 # RMS fluctuation estimate
-                rms_fluc.append(np.sqrt((np.mean(np.square(etedist_list)) - np.mean(etedist_list) ** 2) * nwalks / (nwalks - 1)))
+                rms_fluc.append(np.sqrt((np.mean(np.square(etedist_list))
+                                       - np.mean(etedist_list) ** 2)
+                                       * nwalks / (nwalks - 1)))
                 # Standard error estimate
-                std_err.append(np.sqrt((np.mean(np.square(etedist_list)) - np.mean(etedist_list) ** 2) / (nwalks - 1)))
+                std_err.append(np.sqrt((np.mean(np.square(etedist_list))
+                                      - np.mean(etedist_list) ** 2) / (nwalks - 1)))
             else:#y=Success rate
-                success_rates.append(self.success_rate(nsteps=nsteps,limited=limited))
+                success_rates.append(self.get_success_rate(
+                    nsteps=nsteps,limited=limited))
         if holdon==True:
             return qs, rms, rms_fluc, std_err, success_rates
 
@@ -431,22 +537,33 @@ class Walker():
             ax.plot(qs, rms, label="RMS End-to-End Distance")
             ax.plot(qs, rms_fluc, label="RMS Fluctuation Estimate")
             ax.plot(qs, std_err, label="Standard Error Estimate")
-            plt.suptitle("End-to-end distance measures vs bead size \n for " + str(nwalks) +" walks of "+ str(nsteps) + "-steps "+ self.name+ext)
+            plt.suptitle("End-to-end distance measures vs bead size \n for "
+                + str(nwalks) +" walks of "+ str(nsteps) + "-steps "
+                + self.name+ext)
         else:
             ax.plot(qs,success_rates)
             ax.set_ylabel("Success rate")
-            plt.suptitle("Success rate vs bead size for " + str(nsteps) + "-steps \n"+self.name+ext)
+            plt.suptitle("Success rate vs bead size for " + str(nsteps)
+                + "-steps \n"+self.name+ext)
         plt.legend()
         plt.show()
 
-    def plot_multiple_bead_size_variations_holdon(self,nwalks=1000,nsteps=10,types_of_walks=[1,2,3],data=[0,1,2],rhos=np.arange(0.099,0.5,0.025),plot_rms_grid=False,save=False,avoidLastStep=True,title=None,labels=False,boxes=True,ylabel=None):
-        """Plots the relationship between quotient bead size/my or sigma of step length and RMS End-to-End distance or success rate in self-avoiding chains. All chain-types in same plot."""
+    def plot_multiple_bead_size_variations_holdon(
+            self,nwalks=1000,nsteps=10,types_of_walks=[1,2,3],data=[0,1,2],
+            rhos=np.arange(0.099,0.5,0.025),plot_rms_grid=False,save=False,
+            avoidLastStep=True,title=None,labels=False,boxes=True,ylabel=None):
+        """Plots the relationship between quotient bead size/my or sigma
+        of step length and RMS End-to-End distance or success rate in
+        self-avoiding chains. All chain-types in same plot.
+        """
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.set_xlabel("Bead radius/Expected value of step length")
         ax.set_ylabel(ylabel)
-        if title==None:
-            title = "End-to-end distance measures vs bead radius \n for " + str(nwalks) + " walks of " + str(nsteps) + "-steps " + self.name
+        if title == None:
+            title = ("End-to-end distance measures vs bead radius \n for "
+                  + str(nwalks) + " walks of " + str(nsteps) + "-steps "
+                  + self.name)
         plt.suptitle(title)
         cmap = get_cmap(n=len(types_of_walks)*len(nsteps))
         if type(nsteps)==int or type(nsteps)==float:
@@ -457,9 +574,12 @@ class Walker():
             # Self avoid
             if 1 in types_of_walks:
                 i = j
-                qs, rms, rms_fluc, std_err, success_rates = self.plot_bead_size_variation(nwalks=nwalks,nsteps=n,limited=False,rhos=rhos,forced=False,holdon=True, avoidLastStep=avoidLastStep)
+                qs, rms, rms_fluc, std_err, success_rates = self.plot_bead_size_variation(
+                    nwalks=nwalks,nsteps=n,limited=False,rhos=rhos,
+                    forced=False,holdon=True, avoidLastStep=avoidLastStep)
                 if 0 in data:
-                    ax.plot(qs, rms, label="Self avoiding" if labels==False else labels[0], color=cmap(i))
+                    ax.plot(qs, rms, label="Self avoiding" if labels==False
+                            else labels[0], color=cmap(i))
                 if 1 in data:
                     ax.plot(qs, rms_fluc, color=cmap(i))
                 if 2 in data:
@@ -468,9 +588,12 @@ class Walker():
             # Self avoid:limited
             if 2 in types_of_walks:
                 i = j+1
-                qs, rms, rms_fluc, std_err, success_rates = self.plot_bead_size_variation(nwalks=nwalks,nsteps=n,limited=True,rhos=rhos,forced=False,holdon=True, avoidLastStep=avoidLastStep)
+                qs, rms, rms_fluc, std_err, success_rates = self.plot_bead_size_variation(
+                    nwalks=nwalks,nsteps=n,limited=True,rhos=rhos,
+                    forced=False,holdon=True, avoidLastStep=avoidLastStep)
                 if 0 in data:
-                    ax.plot(qs, rms, label="Self avoiding: limited" if labels==False else labels[1], color=cmap(i))
+                    ax.plot(qs, rms, label="Self avoiding: limited"
+                            if labels==False else labels[1], color=cmap(i))
                 if 1 in data:
                     ax.plot(qs, rms_fluc, color=cmap(i))
                 if 2 in data:
@@ -479,23 +602,32 @@ class Walker():
             # Self avoid:forced
             if 3 in types_of_walks:
                 i = j+2
-                qs, rms, rms_fluc, std_err, success_rates = self.plot_bead_size_variation(nwalks=nwalks,nsteps=n,limited=True,rhos=rhos,forced=True,holdon=True, avoidLastStep=avoidLastStep)
+                qs, rms, rms_fluc, std_err, success_rates = self.plot_bead_size_variation(
+                    nwalks=nwalks,nsteps=n,limited=True,rhos=rhos,
+                    forced=True,holdon=True, avoidLastStep=avoidLastStep)
                 if 0 in data:
-                    ax.plot(qs, rms, label="Self avoiding: forced" if labels==False else labels[2], color=cmap(i))
+                    ax.plot(qs, rms, label="Self avoiding: forced"
+                            if labels==False else labels[2], color=cmap(i))
                 if 1 in data:
                     ax.plot(qs, rms_fluc, color=cmap(i))
                 if 2 in data:
                     ax.plot(qs, std_err, color=cmap(i))
 
             if plot_rms_grid is True:
-                # Rms for self avoiding grid walk of different number of steps (0-19) (obtained by walking 10 000 walks for each number of steps)
-                rms_grid = [0.0, 1.0, 1.549128787415688, 1.97453792062852, 2.3518928547023563,
-                2.6816039976103854, 3.0023324266310016, 3.301999394306425, 3.5805865441293276,
-                3.844866707702622, 4.119465984809196, 4.3475510347780855, 4.590250537824706,
-                4.815952657574615, 5.017868073196026, 5.224232000973923, 5.449091667424947,
-                5.652397721321457, 5.850743542490989, 6.029278563808443]
-
-                ax.plot(qs, [rms_grid[n]]*len(qs), label=str(n)+" steps",color=cmap(j+types_of_walks[0]-1))
+                # Rms for self avoiding grid walk of different number of
+                # steps (0-19) (obtained by walking 10 000 walks for
+                # each number of steps)
+                rms_grid = [
+                    0.0, 1.0, 1.549128787415688, 1.97453792062852,
+                    2.3518928547023563, 2.6816039976103854, 3.0023324266310016,
+                    3.301999394306425, 3.5805865441293276, 3.844866707702622,
+                    4.119465984809196, 4.3475510347780855, 4.590250537824706,
+                    4.815952657574615, 5.017868073196026, 5.224232000973923,
+                    5.449091667424947, 5.652397721321457, 5.850743542490989,
+                    6.029278563808443,
+                    ]
+                ax.plot(qs, [rms_grid[n]]*len(qs), label=str(n)+" steps",
+                        color=cmap(j+types_of_walks[0]-1))
 
             j+=1
 
@@ -526,12 +658,16 @@ class Walker():
         plt.show()
         return
 
-    def normplot(self,nsteps=100,nwalks=10,avoid=False,limited=True,forced=False,avoidLastStep=True):
+    def normplot(self,nsteps=100,nwalks=10,avoid=False,limited=True,
+                 forced=False,avoidLastStep=True):
         """Tests adherence to normal distribution"""
-        etedistlist,l = self.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,forced=forced,avoidLastStep=avoidLastStep)
+        etedistlist,l = self.get_multiple_end_to_end_distances(
+            nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited,
+            forced=forced,avoidLastStep=avoidLastStep)
 
         # Calculate quantiles and least-square-fit curve
-        (quantiles, values), (slope, intercept, r) = scipy_stats.probplot(etedistlist, dist='norm')
+        (quantiles, values), (slope, intercept, r) = scipy_stats.probplot(
+            etedistlist, dist='norm')
 
         # plot results
         plt.plot(values, quantiles, 'ob')
@@ -550,14 +686,16 @@ class Walker():
 
         # show plot
         ext = ", r=" +str(self.rho0)
-        if avoid==True:
-            ext+=", self-avoiding"
+        if avoid == True:
+            ext += ", self-avoiding"
             if limited == True:
                 ext += ", limited"
             if forced == True:
                 ext += ", forced"
 
-        plt.suptitle("Normal distribution-fit of End-to-end distance \n for " + str(nwalks) + " walks of " +str(nsteps) +" steps for "+ self.name + ext)
+        plt.suptitle("Normal distribution-fit of End-to-end distance \n for "
+                    + str(nwalks) + " walks of " +str(nsteps) +" steps for "
+                    + self.name + ext)
         plt.grid()
         plt.show()
 
@@ -595,7 +733,9 @@ class Grid_walker(Walker):
         return False
 
     def test_avoid(self,avoidLastStep=True):
-        """Test if latest site is already occupied. Return True if so, False if not."""
+        """Test if latest site is already occupied. Return True if so,
+        False if not.
+        """
         # if self.r < 2*self.rho:
         #     return True
         if avoidLastStep is True:
@@ -605,7 +745,8 @@ class Grid_walker(Walker):
 
         if self.visited_points[0][:3] == self.visited_points[-1][:3]:
             return True
-        elif any(t == self.visited_points[-1][:3] for t in [i[:3] for i in self. visited_points[:last]]):
+        elif any(t == self.visited_points[-1][:3] for t in [i[:3]
+                for i in self.visited_points[:last]]):
             return True
         return False
 
@@ -630,7 +771,12 @@ class Freely_jointed_chain(Walker):
         #     theta_back = np.pi-self.last_direction[0]
         #     phi_back = np.pi+self.last_direction[1]
         #
-        #     while (self.r*np.sin(theta)*np.cos(phi)-self.r*np.sin(theta_back)*np.cos(phi_back))**2+(self.r*np.sin(theta)*np.sin(phi)-self.r*np.sin(theta_back)*np.sin(phi_back))**2+(self.r*np.cos(theta)-self.r*np.cos(theta_back))**2 < (current_pos[3]+rho)**2:
+        #     while (self.r*np.sin(theta)*np.cos(phi)
+                    # -self.r*np.sin(theta_back)*np.cos(phi_back))**2
+                    # + (self.r*np.sin(theta)*np.sin(phi)
+                    # -self.r*np.sin(theta_back)*np.sin(phi_back))**2
+                    # + (self.r*np.cos(theta)-self.r*np.cos(theta_back))**2
+                    # < (current_pos[3]+rho)**2:
         #        theta = rnd.uniform(0,np.pi)
         #        phi = rnd.uniform(0,2*np.pi)
         #
@@ -650,26 +796,38 @@ class Freely_jointed_chain(Walker):
 
             #In local coordinate system with "going back" vector as z axis:
             #Generate new bead center
-            alpha = np.arccos((self.r ** 2 + self.last_r ** 2 - (2*self.visited_points[-2][3]) ** 2) / (2 * self.r * self.last_r))
+            alpha = np.arccos(
+                (self.r**2 + self.last_r**2 - (2*self.visited_points[-2][3])**2)
+                * 1/(2*self.r*self.last_r))
             z_rnd = rnd.uniform(-1,np.cos(alpha))
             theta = np.arccos(z_rnd)
             phi = rnd.uniform(0, np.pi * 2)
 
-            #Translate bead center position into global coordinate system.
+            # Translate bead center position into global coordinate system.
             # First: define the local coordinate system in terms of the global
-            z_hat = [np.sin(theta_back) * np.cos(phi_back), np.sin(theta_back) * np.sin(phi_back),np.cos(theta_back)]  # vector between the most recent two beads
+            z_hat = [np.sin(theta_back) * np.cos(phi_back),
+                     np.sin(theta_back) * np.sin(phi_back),
+                     np.cos(theta_back)]  # vector between the most recent two beads
             y_hat = [-np.sin(phi_back), np.cos(phi_back), 0] # Normalized and orthogonal to z_hat
-            x_hat = [-np.cos(theta_back) * np.cos(phi_back),-np.cos(theta_back) * np.sin(phi_back), np.sin(theta_back)] # Normalized and orthogonal to z_hat and y hat
+            x_hat = [-np.cos(theta_back) * np.cos(phi_back),
+                     -np.cos(theta_back) * np.sin(phi_back),
+                     np.sin(theta_back)] # Normalized and orthogonal to z_hat and y hat
 
             #print(sum([y_hat[i] * y_hat[i] for i in range(3)]))
-            #Second: project the bead center position onto the global axes and translate it to origo
-            current_pos_origo = [self.r*(np.cos(theta)*z_hat[i]+np.sin(theta)*np.cos(phi)*y_hat[i]+np.sin(theta)*np.sin(phi)*x_hat[i]) for i in range(3)]
+            # Second: project the bead center position onto the global axes
+            # and translate it to origo
+            current_pos_origo = [self.r*(np.cos(theta)*z_hat[i]+
+                                 np.sin(theta)*np.cos(phi)*y_hat[i]+
+                                 np.sin(theta)*np.sin(phi)*x_hat[i])
+                                 for i in range(3)]
             current_pos = [current_pos[i] + current_pos_origo[i] for i in range(3)]
             current_pos.append(rho)
 
             # vector_length = np.sqrt(sum([current_pos[i]**2 for i in range(3)]))
             # Define direction
-            self.last_direction = [np.arctan(current_pos_origo[1]/current_pos_origo[0]), np.arccos(current_pos_origo[2]/self.r)]
+            self.last_direction = [
+                np.arctan(current_pos_origo[1]/current_pos_origo[0]),
+                np.arccos(current_pos_origo[2]/self.r)]
         else:
             z_rnd = rnd.uniform(-1, 1)
             theta = np.arccos(z_rnd)
@@ -690,7 +848,9 @@ class Freely_jointed_chain(Walker):
         return False
 
     def test_limited_option(self,limited=True):
-        """Tests whether the limited-option actually limits options to > 2*rho from the neighbor of the most recent point"""
+        """Tests whether the limited-option actually limits options to > 2*rho
+        from the neighbor of the most recent point
+        """
         def walk_options_help(limited=True):
             options=[]
             current_pos = self.visited_points[-1][:]
@@ -701,10 +861,13 @@ class Freely_jointed_chain(Walker):
                 # Define direction to walk back the same way
                 theta_back = np.pi-self.last_direction[0]
                 phi_back = np.pi+self.last_direction[1]
-                #In local coordinate system with "going back" vector as z axis:
-                #Generate new bead center
-                self.alpha = np.arccos((self.r ** 2 + self.last_r ** 2 - (2*self.visited_points[-2][3]) ** 2) / (2 * self.r * self.last_r))
-                #TESTING STEP: Generate many options for the position of the next bead. All options are stored in
+                # In local coordinate system with "going back" vector as z axis:
+                # Generate new bead center
+                self.alpha = np.arccos(
+                    (self.r**2 + self.last_r**2 - (2*self.visited_points[-2][3])**2)
+                    *1/(2 * self.r * self.last_r))
+                # TESTING STEP: Generate many options for the position of
+                # the next bead. All options are stored in
                 for i in range(1000):
                     z_rnd = rnd.uniform(-1, np.cos(self.alpha))
                     phi = rnd.uniform(0, np.pi * 2)
@@ -712,11 +875,22 @@ class Freely_jointed_chain(Walker):
 
                     #Translate bead center position into global coordinate system.
                     # First: define the local coordinate system in terms of the global
-                    z_hat = [np.sin(theta_back) * np.cos(phi_back), np.sin(theta_back) * np.sin(phi_back),np.cos(theta_back)]  # vector between the most recent two beads
+                    z_hat = [
+                        np.sin(theta_back) * np.cos(phi_back),
+                        np.sin(theta_back) * np.sin(phi_back),
+                        np.cos(theta_back)]  # vector between the most recent two beads
                     y_hat = [-np.sin(phi_back), np.cos(phi_back), 0] #Orthogonal
-                    x_hat = [-np.cos(theta_back) * np.cos(phi_back),-np.cos(theta_back) * np.sin(phi_back), np.sin(theta_back)] #Orthogonal
-                    #Second: project the bead center position onto the global axes and translate it to origo
-                    option_direction = [self.r*(np.cos(theta)*z_hat[i]+np.sin(theta)*np.cos(phi)*y_hat[i]+np.sin(theta)*np.sin(phi)*x_hat[i]) for i in range(3)]
+                    x_hat = [
+                        -np.cos(theta_back) * np.cos(phi_back),
+                        -np.cos(theta_back) * np.sin(phi_back),
+                        np.sin(theta_back)] #Orthogonal
+                    #Second: project the bead center position onto the global
+                    # axes and translate it to origo
+                    option_direction = [
+                        self.r*(np.cos(theta)*z_hat[i]
+                        + np.sin(theta)*np.cos(phi)*y_hat[i]
+                        + np.sin(theta)*np.sin(phi)*x_hat[i])
+                        for i in range(3)]
                     option = [current_pos[i] + option_direction[i] for i in range(3)]
                     options.append(option)
                 current_pos=option
@@ -760,13 +934,17 @@ class Freely_jointed_chain(Walker):
         last=self.visited_points[-3]
         for opt in options:
             dist.append(np.sqrt(sum([(opt[i]-last[i])**2 for i in range(3)])))
-        print("Distance between pearl 1 and options for pearl 3:\nmin: ",min(dist), ", 2*rho: ",2*self.rho0,", max: ",max(dist),", r:",self.r)
+        print("Distance between pearl 1 and options for pearl 3:\nmin: ",
+              min(dist), ", 2*rho: ",2*self.rho0,", max: ",max(dist),
+              ", r:",self.r)
 
     def test_avoid(self,avoidLastStep=True):
         """Test if latest site is already occupied - continuous case"""
         cp = self.visited_points[-1]    # Current position
         # print(cp)
-        #The distance between successive sphere centres is self.r. Interception between any two spheres occurs if their centres are less apart than their diameter
+        # The distance between successive sphere centres is self.r.
+        # Interception between any two spheres occurs if their centres are
+        # less apart than their diameter
         # if self.r < 2*self.rho:
         #     return True
         if avoidLastStep is True:
@@ -775,15 +953,19 @@ class Freely_jointed_chain(Walker):
             last = -2
 
         for point in self.visited_points[:last]:
-            r_centres = np.sqrt((point[0] - cp[0])**2 + (point[1] - cp[1])**2 + (point[2] - cp[2])**2)
+            r_centres = np.sqrt((point[0] - cp[0])**2 + (point[1] - cp[1])**2
+                              + (point[2] - cp[2])**2)
             if r_centres < point[3]+cp[3]:
                 # Self-intercept - needs to restart the process
                 return True
         return False
-        # TODO Implement method for avoiding previous _paths_, not just previous positions.
+        # TODO Implement method for avoiding previous _paths_,
+        # not just previous positions.
 
 class Reptation_walker(Grid_walker):
-    """Reptation algorithm to generate SAWs. Algoritm on hiskp.uni-bonn... pg. 4"""
+    """Reptation algorithm to generate SAWs.
+    Algoritm on hiskp.uni-bonn... pg. 4
+    """
     origin = [0,0,0]
     def __init__(self,nsteps=100,name='Reptation walker'):
         # Generate a basis self-avoiding walk
@@ -795,17 +977,25 @@ class Reptation_walker(Grid_walker):
         self.shortname = "rept"
 
     def test_avoid(self):
-        """Test if latest site is already occupied. Return True if so, False if not."""
+        """Test if latest site is already occupied. Return True if so,
+        False if not.
+        """
         if self.visited_points[0][:3] == self.visited_points[-1][:3]:
             return True
-        elif any(t == self.visited_points[-1][:3] or t == self.visited_points[0][:3] for t in [i[:3] for i in self.visited_points[1:-1]]):
+        elif any(t == self.visited_points[-1][:3]
+                 or t == self.visited_points[0][:3]
+                 for t in [i[:3] for i in self.visited_points[1:-1]]):
             return True
         return False
 
     def walk_with_self_avoid(self,nsteps=100,limited=True):
-        """Generates a new SAW using the reptation model based on the initialized SAW"""
-        #TODO: The signatures of the methods aren't optimal since the methods are slightly different, but it works
-        #Save a copy of the old saw #TODO: Performance improvement possible if computational cost is an issue
+        """Generates a new SAW using the reptation model based on the
+        initialized SAW
+        """
+        # TODO: The signatures of the methods aren't optimal since the methods
+        # are slightly different, but it works
+        # Save a copy of the old saw #TODO: Performance improvement possible
+        # if computational cost is an issue
         old_visited_points = list(self.visited_points)
         #Length nsteps defined in class attribute
         self.length = self.nsteps*self.r
@@ -847,14 +1037,18 @@ class Reptation_walker(Grid_walker):
             self.visited_points.insert(0, current_pos)
         else:
             self.visited_points.append(current_pos)
-        # In case of self-intersection: revert to previous configuration. Else, retain new configuration #TODO: Is this the right interpretation?
+        # In case of self-intersection: revert to previous configuration.
+        #Else, retain new configuration #TODO: Is this the right interpretation?
         if self.test_avoid() == True:
             self.visited_points = old_visited_points
         self.gridwalk.visited_points = self.visited_points
         return 0
 
-    def get_multiple_end_to_end_distances(self,nsteps=100,nwalks=10,avoid=False,limited=True):
-        """Returns a list of end-to-end distances and chain lengths for nwalks number of walks"""
+    def get_multiple_end_to_end_distances(
+        self,nsteps=100,nwalks=10,avoid=False,limited=True):
+        """Returns a list of end-to-end distances and chain lengths for
+        nwalks number of walks.
+        """
         etedist_list = np.zeros(nwalks)
         length_list = np.zeros(nwalks)
         for i in range(nwalks):
@@ -918,8 +1112,11 @@ class Freely_jointed_chain_stepl_variations(Freely_jointed_chain):
             return True
         return Freely_jointed_chain.walk_one_step(self,limited)
 
-def reptation_plot_multiple_end_to_end_distances(nwalks=10,avoid=False,limited=False):
-    """Plots end-to-end distance RMS, RMS fluctuation and standard error estimate for nwalks walks by chain length"""
+def reptation_plot_multiple_end_to_end_distances(
+        nwalks=10,avoid=False,limited=False):
+    """Plots end-to-end distance RMS, RMS fluctuation and standard error
+    estimate for nwalks walks by chain length.
+    """
     rms=[]
     rms_fluc = []
     std_err = []
@@ -934,34 +1131,47 @@ def reptation_plot_multiple_end_to_end_distances(nwalks=10,avoid=False,limited=F
         std_err = []
         for i in range(rounds):
             repwalk=Reptation_walker(nsteps=nsteps)
-            etedist_list, length_list = repwalk.get_multiple_end_to_end_distances(nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited)
+            etedist_list, length_list = repwalk.get_multiple_end_to_end_distances(
+                nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited)
             #RMS end-to-end distance
             rms.append(np.sqrt(np.mean(np.square(etedist_list))))
             #RMS fluctuation estimate
-            rms_fluc.append(np.sqrt((np.mean(np.square(etedist_list))-np.mean(etedist_list)**2)*nwalks/(nwalks-1)))
+            rms_fluc.append(np.sqrt((np.mean(np.square(etedist_list))
+                    -np.mean(etedist_list)**2)*nwalks/(nwalks-1)))
             #Standard error estimate
-            std_err.append(np.sqrt((np.mean(np.square(etedist_list))-np.mean(etedist_list)**2)/(nwalks-1)))
+            std_err.append(np.sqrt((np.mean(np.square(etedist_list))
+                    -np.mean(etedist_list)**2)/(nwalks-1)))
         chain_lengths = [nsteps*repwalk.r for i in range(rounds)]
 
         ax.plot(chain_lengths,rms,color="blue")
         ax.plot(chain_lengths,rms_fluc,color="orange")
         ax.plot(chain_lengths,std_err,color="green")
         if first == True:
-            plt.legend(["RMS End-to-End Distance","RMS Fluctuation Estimate","Standard Error Estimate"])
-            first=False
+            plt.legend(["RMS End-to-End Distance",
+                        "RMS Fluctuation Estimate",
+                        "Standard Error Estimate"])
+            first = False
     ax.set_xlabel("Chain length")
 
-    plt.suptitle("End-to-end distance measures vs chain length \n for 100 rounds of " +str(nwalks)+" reptation walks (self-avoiding)")
+    plt.suptitle(
+        "End-to-end distance measures vs chain length \n for 100 rounds of "
+        + str(nwalks) + " reptation walks (self-avoiding)")
     plt.show()
 
 def get_cmap(n, name='hsv'):
     '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
-    RGB color; the keyword argument name must be a standard mpl colormap name.'''
+    RGB color; the keyword argument name must be a standard mpl colormap name.
+    '''
     return plt.cm.get_cmap(name, n + 1)
 
 
-def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linlin',show=True,save=False,fileName=None,labelposition="inside",plotLin=False):
-    """xlists and ylists can be lists of lists if more than one series should be plotted."""
+def plot2D(
+        title,xlabel,ylabel,xlists,ylists,labels_list=None,
+        scale='linlin',show=True,save=False,fileName=None,
+        labelposition="inside",plotLin=False):
+    """xlists and ylists can be lists of lists if more than one series
+    should be plotted.
+    """
     print("xlists:",xlists)
     print("ylists:",ylists)
     plt.figure()
@@ -976,11 +1186,14 @@ def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linlin',sho
     # Linear regression
     #plotLin if one wants to plot the lines, else just a printout
     if scale == "linlog":
-        plot_linreg(xlists,np.log10(ylists),labels_list,scale,plotLin,datatitle=title+', linlog')
+        plot_linreg(xlists,np.log10(ylists),labels_list,scale,
+                    plotLin,datatitle=title+', linlog')
     elif scale == "loglog":
-        plot_linreg(np.log10(xlists),np.log10(ylists),labels_list,scale,plotLin,datatitle=title+', loglog')
+        plot_linreg(np.log10(xlists),np.log10(ylists),labels_list,scale,
+                    plotLin,datatitle=title+', loglog')
     elif scale == "linlin":
-        plot_linreg(xlists,ylists,labels_list,scale,plotLin,datatitle=title+', linlin')
+        plot_linreg(xlists,ylists,labels_list,scale,
+                    plotLin,datatitle=title+', linlin')
 
     # Make the plot
     if type(xlists[0]) is list:
@@ -1018,11 +1231,18 @@ def plot2D(title,xlabel,ylabel,xlists,ylists,labels_list=None,scale='linlin',sho
     if show is True:
         plt.show()
 
-def plot_success_rate_vs_onXAxis(instances,onXAxis='nsteps',limited=True,bothLimitedAndNot=False,nsteps_list=range(0,25,1),m_list=0.4,show=True,save=False,scale='linlin',labelposition="inside",avoidLastStep=True,title=None,labels_list=None,plotLin=False):
-    """Plots success rate vs number of steps in walk for various instances, or just one. Also compares limited with not limited if bothLimitedAndNot is True.
+def plot_success_rate_vs_onXAxis(
+        instances,onXAxis='nsteps',limited=True,bothLimitedAndNot=False,
+        nsteps_list=range(0,25,1),m_list=0.4,show=True,save=False,
+        scale='linlin',labelposition="inside",avoidLastStep=True,
+        title=None,labels_list=None,plotLin=False):
+    """Plots success rate vs number of steps in walk for various instances,
+    or just one. Also compares limited with not limited if bothLimitedAndNot
+    is True.
     nsteps is the number of steps in each walk
     m = rho/r_mean (m_list is a list of these values to be tested)
-    onXAxis = 'nsteps','bead radius', 'bead volume' or 'bead surface area'"""
+    onXAxis = 'nsteps','bead radius', 'bead volume' or 'bead surface area'.
+    """
     instances = list(instances) # require list
     success_rates = []
     if bothLimitedAndNot is True:
@@ -1081,7 +1301,7 @@ def plot_success_rate_vs_onXAxis(instances,onXAxis='nsteps',limited=True,bothLim
     # Make labels and store success rates
     for instance in instances:
         for c in comparisons:
-            if onXAxis=='nsteps':    # Update rho0 if the values of this is what should be compared
+            if onXAxis=='nsteps':  # Update rho0 if the values of this is what should be compared
                 instance.rho0 = c*instance.my
             else:
                 nsteps = c
@@ -1110,7 +1330,9 @@ def plot_success_rate_vs_onXAxis(instances,onXAxis='nsteps',limited=True,bothLim
                     nsteps=x
                 else:
                     instance.rho0=x*instance.my
-                SR.append(instance.get_success_rate(nsteps=nsteps,limited=limited,avoidLastStep=avoidLastStep))
+                SR.append(instance.get_success_rate(
+                        nsteps=nsteps,limited=limited,
+                        avoidLastStep=avoidLastStep))
                 # print(nsteps)
             success_rates.append(SR)
 
@@ -1136,7 +1358,9 @@ def plot_success_rate_vs_onXAxis(instances,onXAxis='nsteps',limited=True,bothLim
                         nsteps=onXAxis
                     else:
                         instance.rho0=x*instance.my
-                    SR.append(instance.get_success_rate(nsteps=nsteps,limited=False,avoidLastStep=avoidLastStep))
+                    SR.append(instance.get_success_rate(
+                            nsteps=nsteps,limited=False,
+                            avoidLastStep=avoidLastStep))
                     # print(nsteps)
                 success_rates.append(SR)
             print(instance.name)
@@ -1156,12 +1380,21 @@ def plot_success_rate_vs_onXAxis(instances,onXAxis='nsteps',limited=True,bothLim
         if scale == "linlin":
             plotLin=False
         newFileName=fileName+"_"+sc
-        plot2D(title,xlabel,"Success rate",x_list,success_rates,labels_list,scale=sc,show=show,fileName=newFileName,save=save,labelposition=labelposition,plotLin=plotLin)
+        plot2D(title,xlabel,"Success rate",
+               x_list,success_rates,labels_list,scale=sc,show=show,
+               fileName=newFileName,save=save,labelposition=labelposition,
+               plotLin=plotLin)
     return x_list, success_rates
 
-def plot_success_rate_vs_r(instances,nsteps=10,limited=True,bothLimitedAndNot=False,r_range=np.arange(1,10,1),m_list=0.4,show=True,save=False,scale='linlin',labelposition="inside",avoidLastStep=True,plotLin=False):
-    """Plots success rate vs bead size for one or more instances. Also compares limited with not limited if bothLimitedAndNot is True.
-    m_list is bead size/step length, can be a list"""
+def plot_success_rate_vs_r(
+        instances,nsteps=10,limited=True,bothLimitedAndNot=False,
+        r_range=np.arange(1,10,1),m_list=0.4,show=True,save=False,
+        scale='linlin',labelposition="inside",avoidLastStep=True,
+        plotLin=False):
+    """Plots success rate vs bead size for one or more instances.
+    Also compares limited with not limited if bothLimitedAndNot is True.
+    m_list is bead size/step length, can be a list.
+    """
     instances = list(instances) # require list
     success_rates = []
     if type(m_list) == float:
@@ -1182,24 +1415,29 @@ def plot_success_rate_vs_r(instances,nsteps=10,limited=True,bothLimitedAndNot=Fa
         for m in m_list:
             #  Labels
             if (limited is True):
-                labels_list.append(str(instance.shortname)+", limited, rho/r="+str(m))
+                labels_list.append(
+                    str(instance.shortname)+", limited, rho/r="+str(m))
             else:
-                labels_list.append(str(instance.shortname)+", rho/r="+str(m))
+                labels_list.append(
+                    str(instance.shortname)+", rho/r="+str(m))
             # Success rates
             SR = []
             for r in r_range:
                 instance.my = r
                 instance.rho0 = r*m
-                SR.append(instance.get_success_rate(nsteps,limited,avoidLastStep=avoidLastStep))
+                SR.append(instance.get_success_rate(
+                        nsteps,limited,avoidLastStep=avoidLastStep))
                 print(r)
             success_rates.append(SR)
             if bothLimitedAndNot is True:
-                labels_list.append(str(instance.shortname)+", regular, rho/r="+str(m))
+                labels_list.append(
+                    str(instance.shortname)+", regular, rho/r="+str(m))
                 SR = []
                 for r in r_range:
                     instance.my = r
                     instance.rho0 = r*m
-                    SR.append(instance.get_success_rate(nsteps,limited=False,avoidLastStep=avoidLastStep))
+                    SR.append(instance.get_success_rate(
+                            nsteps,limited=False,avoidLastStep=avoidLastStep))
                     print(r)
                 success_rates.append(SR)
             print(instance.name)
@@ -1219,10 +1457,16 @@ def plot_success_rate_vs_r(instances,nsteps=10,limited=True,bothLimitedAndNot=Fa
     if avoidLastStep is True:
         fileName += " avoidLastStep"
     print(fileName)
-    plot2D(title,"Step length", "Success rate", list(r_range), success_rates, labels_list,scale=scale,show=show,fileName=fileName,save=save,labelposition=labelposition,plotLin=plotLin)
+    plot2D(title,"Step length", "Success rate",
+           list(r_range), success_rates, labels_list,scale=scale,
+           show=show,fileName=fileName,save=save,labelposition=labelposition,
+           plotLin=plotLin)
     return r_range, success_rates
 
-def plot_multiple_end_to_end_distances(instances,types_of_walks=[0,1,2,3],data=[0,1,2],nwalks=1000,nsteps_list=range(5,14,1),avoidLastStep=True,labelposition="inside",show=True,save=False):
+def plot_multiple_end_to_end_distances(
+        instances,types_of_walks=[0,1,2,3],data=[0,1,2],nwalks=1000,
+        nsteps_list=range(5,14,1),avoidLastStep=True,labelposition="inside",
+        show=True,save=False):
     """types_of_walks:
             0 = non-self avoiding (regular)
             1 = self-avoiding
@@ -1231,12 +1475,14 @@ def plot_multiple_end_to_end_distances(instances,types_of_walks=[0,1,2,3],data=[
         data:
             0 = rms
             1 = rms_fluc
-            2 = std_err"""
+            2 = std_err
+    """
     instances = list(instances)
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_xlabel("Chain length")
-    title="End-to-end distance measures vs chain length, \n" +str(nwalks)+" walks"
+    title = ("End-to-end distance measures vs chain length, \n"
+          + str(nwalks) + " walks")
     if len(instances)==1 and instances[0].shortname!='grid':
         title += ', bead radius '+ str(instances[0].rho0)
     else:
@@ -1249,47 +1495,90 @@ def plot_multiple_end_to_end_distances(instances,types_of_walks=[0,1,2,3],data=[
         #Non-self avoid
         if 0 in types_of_walks:
             i=j
-            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(nsteps_list=nsteps_list,nwalks=nwalks,avoid=False,limited=False,forced=False,holdon=True,avoidLastStep=avoidLastStep)
+            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(
+                nsteps_list=nsteps_list,nwalks=nwalks,avoid=False,
+                limited=False,forced=False,holdon=True,
+                avoidLastStep=avoidLastStep)
             if 0 in data:
-                ax.plot(chain_lengths, rms, label="Non self avoiding, "+instance.shortname,color=cmap(i))
+                ax.plot(chain_lengths, rms,
+                    label="Non self avoiding, "+instance.shortname,
+                    color=cmap(i))
             if 1 in data:
-                ax.plot(chain_lengths, rms_fluc,label="Non self avoiding, "+instance.shortname if not 0 in data else None, color=cmap(i))
+                ax.plot(chain_lengths, rms_fluc,
+                    label="Non self avoiding, "
+                    +instance.shortname if not 0 in data else None,
+                    color=cmap(i))
             if 2 in data:
-                ax.plot(chain_lengths, std_err,label="Non self avoiding, "+instance.shortname if not 0 in data and not 1 in data else None,color=cmap(i))
+                ax.plot(chain_lengths, std_err,
+                    label="Non self avoiding, "
+                    +instance.shortname if not 0 in data and
+                    1 not in data else None,
+                    color=cmap(i))
 
         #Self avoid
         if 1 in types_of_walks:
             i=j+1
-            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(nsteps_list=nsteps_list,nwalks=nwalks,avoid=True,limited=False,forced=False,holdon=True,avoidLastStep=avoidLastStep)
+            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(
+                nsteps_list=nsteps_list,nwalks=nwalks,avoid=True,
+                limited=False,forced=False,holdon=True,
+                avoidLastStep=avoidLastStep)
             if 0 in data:
-                ax.plot(chain_lengths, rms, label="Self avoiding, "+instance.shortname,color=cmap(i))
+                ax.plot(chain_lengths, rms,
+                    label="Self avoiding, "+instance.shortname,color=cmap(i))
             if 1 in data:
-                ax.plot(chain_lengths, rms_fluc,label="Self avoiding, "+instance.shortname if not 0 in data else None,color=cmap(i))
+                ax.plot(chain_lengths, rms_fluc,
+                    label="Self avoiding, "
+                    +instance.shortname if not 0 in data else None,
+                    color=cmap(i))
             if 2 in data:
-                ax.plot(chain_lengths, std_err,label="Self avoiding, "+instance.shortname if not 0 in data and not 1 in data else None, color=cmap(i))
+                ax.plot(chain_lengths, std_err,
+                    label="Self avoiding, "+instance.shortname if not 0 in data
+                    and not 1 in data else None,
+                    color=cmap(i))
             print(rms)
 
         #Self avoid:limited
         if 2 in types_of_walks:
             i=j+2
-            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(nsteps_list=nsteps_list,nwalks=nwalks,avoid=True,limited=True,forced=False,holdon=True,avoidLastStep=avoidLastStep)
+            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(
+                nsteps_list=nsteps_list,nwalks=nwalks,avoid=True,
+                limited=True,forced=False,holdon=True,
+                avoidLastStep=avoidLastStep)
             if 0 in data:
-                ax.plot(chain_lengths, rms, label="Self avoiding: limited, "+instance.shortname,color=cmap(i))
+                ax.plot(chain_lengths, rms,
+                    label="Self avoiding: limited, "
+                    +instance.shortname,color=cmap(i))
             if 1 in data:
-                ax.plot(chain_lengths, rms_fluc,label="Self avoiding: limited, "+instance.shortname if not 0 in data else None, color=cmap(i))
+                ax.plot(chain_lengths, rms_fluc,
+                    label="Self avoiding: limited, "
+                    +instance.shortname if not 0 in data else None,
+                    color=cmap(i))
             if 2 in data:
-                ax.plot(chain_lengths, std_err,label="Self avoiding: limited, "+instance.shortname if not 0 in data and not 1 in data else None,color=cmap(i))
+                ax.plot(chain_lengths, std_err,
+                label="Self avoiding: limited, "
+                +instance.shortname if not 0 in data and not 1 in data
+                else None,color=cmap(i))
 
         #Self avoid:forced
         if 3 in types_of_walks:
             i=j+3
-            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(nsteps_list=nsteps_list,nwalks=nwalks,avoid=True,limited=True,forced=True,holdon=True,avoidLastStep=avoidLastStep)
+            chain_lengths, rms, rms_fluc, std_err = instance.plot_multiple_end_to_end_distances(
+                nsteps_list=nsteps_list,nwalks=nwalks,avoid=True,
+                limited=True,forced=True,holdon=True,
+                avoidLastStep=avoidLastStep)
             if 0 in data:
-                ax.plot(chain_lengths, rms, label="Self avoiding: forced, "+instance.shortname,color=cmap(i))
+                ax.plot(chain_lengths, rms,
+                    label="Self avoiding: forced, "+instance.shortname,
+                    color=cmap(i))
             if 1 in data:
-                ax.plot(chain_lengths, rms_fluc,label="Self avoiding: forced, "+instance.shortname if not 0 in data else None,color=cmap(i))
+                ax.plot(chain_lengths, rms_fluc,
+                    label="Self avoiding: forced, "+instance.shortname if
+                    not 0 in data else None,color=cmap(i))
             if 2 in data:
-                ax.plot(chain_lengths, std_err,label="Self avoiding: forced, "+instance.shortname if not 0 in data and not 1 in data else None, color=cmap(i))
+                ax.plot(chain_lengths, std_err,
+                label="Self avoiding: forced, "+instance.shortname if
+                not 0 in data and not 1 in data else None,
+                color=cmap(i))
         j+=1
 
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
@@ -1320,7 +1609,9 @@ def plot_multiple_end_to_end_distances(instances,types_of_walks=[0,1,2,3],data=[
     return
 
 
-def plot_linreg(xs,ys,name,scale="linlin",plotLin=False,savetofile="linregdata.txt",datatitle=None):
+def plot_linreg(
+        xs,ys,name,scale="linlin",plotLin=False,savetofile="linregdata.txt",
+        datatitle=None):
     """savetofile is name of file that the data should be saved in"""
     global plt
     if savetofile:
@@ -1332,25 +1623,32 @@ def plot_linreg(xs,ys,name,scale="linlin",plotLin=False,savetofile="linregdata.t
         p,cov = np.polyfit(xs[i],ys[i],1,cov=True)
         sdev=np.sqrt(np.diag(cov))
         if sdev[0]<0.1 or sdev[1]<0.1:
-            textstr+="\n"+name[i]+"&"+str(round(p[0],2)) +"&"+ str(round_to_1(sdev[0]))+"&" + str(round(p[1],2)) + "&"+ str(round_to_1(sdev[1]))+"\\\\"
+            textstr += ("\n"+name[i]+"&"+str(round(p[0],2)) +"&"
+                    + str(round_to_1(sdev[0]))+"&" + str(round(p[1],2))
+                    + "&"+ str(round_to_1(sdev[1]))+"\\\\")
         else:
-            textstr+="\n"+name[i]+"&"+str(round(p[0],2)) +"&"+ str(round(sdev[0],2))+"&" + str(round(p[1],2)) + "&"+ str(round(sdev[1],2))+"\\\\"
+            textstr += ("\n"+name[i]+"&"+str(round(p[0],2)) + "&"
+                    + str(round(sdev[0],2))+"&" + str(round(p[1],2)) + "&"
+                    + str(round(sdev[1],2))+"\\\\")
         if plotLin is True:
             if scale=="loglog":
                 x = [10**xs[i][j] for j in range(len(xs[i]))]
                 y = [10 ** p[1] * x[i]**(p[0]) for i in range(len(x))]
-                plt.plot(x,y,color="red",linestyle='--',alpha=0.5,label="LinReg" if i==0 else None)
+                plt.plot(x,y,color="red",linestyle='--',alpha=0.5,
+                         label="LinReg" if i==0 else None)
             elif scale =="linlog":
                 x = xs[i]
                 y = [10 ** p[1] * 10 ** (p[0] * x[i]) for i in range(len(x))]
-                plt.plot(x,y,color="red",linestyle='--',alpha=0.5,label="LinReg" if i==0 else None)
+                plt.plot(x,y,color="red",linestyle='--',alpha=0.5,
+                         label="LinReg" if i==0 else None)
             elif scale == "linlin":
                 x=xs[i]
                 y=ys[i]
-    print_out = '\hline\nLine & k & k s.dev.& m & m s.dev.\\\\\n\hline' + textstr + '\n\hline'
+    print_out = ('\hline\nLine & k & k s.dev.& m & m s.dev.\\\\\n\hline'
+              + textstr + '\n\hline')
     print(print_out)
     if savetofile:
-        linregdata.write(datatitle + '\n' + print_out)
+        linregdata.write('\n \n'+datatitle + '\n' + print_out)
     return
 
 def main():
@@ -1473,13 +1771,20 @@ def main():
     m_list1 = np.arange(0.099,0.51,0.05)
     # Limited, lin-lin and lin-log scale, comparison multiple rho/r
     # print("Limited, lin-lin and lin-log scale, comparison multiple rho/r")
-    # plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',limited=True,nsteps_list=nsteps_list,m_list=m_list1,show=False,save=True,scale=scales,plotLin=True)
+    # plot_success_rate_vs_onXAxis(
+        # [chainwalk],onXAxis='nsteps',limited=True,nsteps_list=nsteps_list,
+        # m_list=m_list1,show=False,save=True,scale=scales,plotLin=True)
     # # Regular, lin-lin and lin-log scale, comparison multiple rho/r
     # print("Regular, lin-lin and lin-log scale, comparison multiple rho/r")
-    # plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',limited=False,nsteps_list=nsteps_list,m_list=m_list1,show=False,save=True,plotLin=True,scale=scales)
+    # plot_success_rate_vs_onXAxis(
+        # [chainwalk],onXAxis='nsteps',limited=False,nsteps_list=nsteps_list,
+        # m_list=m_list1,show=False,save=True,plotLin=True,scale=scales)
     # Complarison limited and regular
     print("Complarison limited and regular")
-    plot_success_rate_vs_onXAxis([chainwalk],onXAxis='nsteps',bothLimitedAndNot=True,nsteps_list=nsteps_list,m_list=0.499,show=True,save=True,plotLin=True,scale=scales)
+    plot_success_rate_vs_onXAxis(
+        [chainwalk],onXAxis='nsteps',bothLimitedAndNot=True,
+        nsteps_list=nsteps_list,m_list=0.499,show=True,save=True,plotLin=True,
+        scale=scales)
 
     # ## FREELY JOINTED, DON'T AVOID LAST BEAD
     m_list2 = np.arange(0.1,1.0,0.1)
