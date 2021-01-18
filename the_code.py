@@ -1117,47 +1117,62 @@ def reptation_plot_multiple_end_to_end_distances(
     """Plots end-to-end distance RMS, RMS fluctuation and standard error
     estimate for nwalks walks by chain length.
     """
-    rms=[]
-    rms_fluc = []
-    std_err = []
+
     step_numbers = range(10,100,10)
-    rounds=10
+    rounds=100
     fig = plt.figure()
     ax = fig.add_subplot(111)
+
     first=True
-    for nsteps in step_numbers:
+    rms1 = []
+    rms_fluc1 = []
+    std_err1 = []
+    for i in range(rounds):
         rms = []
         rms_fluc = []
         std_err = []
-        for i in range(rounds):
-            repwalk=Reptation_walker(nsteps=nsteps)
-            etedist_list, length_list = repwalk.get_multiple_end_to_end_distances(
-                nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited)
-            #RMS end-to-end distance
-            rms.append(np.sqrt(np.mean(np.square(etedist_list))))
-            #RMS fluctuation estimate
-            rms_fluc.append(np.sqrt((np.mean(np.square(etedist_list))
-                    -np.mean(etedist_list)**2)*nwalks/(nwalks-1)))
-            #Standard error estimate
-            std_err.append(np.sqrt((np.mean(np.square(etedist_list))
-                    -np.mean(etedist_list)**2)/(nwalks-1)))
-        chain_lengths = [nsteps*repwalk.r for i in range(rounds)]
+        for nsteps in step_numbers:
+                repwalk=Reptation_walker(nsteps=nsteps)
+                etedist_list, length_list = repwalk.get_multiple_end_to_end_distances(
+                    nsteps=nsteps,nwalks=nwalks,avoid=avoid,limited=limited)
+                #RMS end-to-end distance
+                rms.append(np.sqrt(np.mean(np.square(etedist_list))))
+                #RMS fluctuation estimate
+                rms_fluc.append(np.sqrt((np.mean(np.square(etedist_list))
+                        -np.mean(etedist_list)**2)*nwalks/(nwalks-1)))
+                #Standard error estimate
+                std_err.append(np.sqrt((np.mean(np.square(etedist_list))
+                        -np.mean(etedist_list)**2)/(nwalks-1)))
+        #print(rms)
 
-        ax.plot(chain_lengths,rms,color="blue")
-        ax.plot(chain_lengths,rms_fluc,color="orange")
-        ax.plot(chain_lengths,std_err,color="green")
+        rms1.append(rms)
+        rms_fluc1.append(rms_fluc)
+        std_err1.append(std_err)
+
+        ax.plot(step_numbers,rms,"bo")
+        ax.plot(step_numbers,rms_fluc,"yo")
+        ax.plot(step_numbers,std_err,"go")
         if first == True:
-            plt.legend(["RMS End-to-End Distance",
-                        "RMS Fluctuation Estimate",
-                        "Standard Error Estimate"])
+            plt.legend(["RMS End-to-End Distance","RMS Fluctuation Estimate","Standard Error Estimate"])
             first = False
-    ax.set_xlabel("Chain length")
+    rms2 = [np.mean([rms[i] for rms in rms1]) for i in range(len(step_numbers))]
+    rms_fluc2 = [np.mean([rms_fluc[i] for rms_fluc in rms_fluc1]) for i in range(len(step_numbers))]
+    std_err2 = [np.mean([std_err[i] for std_err in std_err1]) for i in range(len(step_numbers))]
+
+    ax.plot(step_numbers,rms2,"blue")
+    ax.plot(step_numbers,rms_fluc2,"yellow")
+    ax.plot(step_numbers,std_err2,"green")
+
+    plt.legend(["RMS End-to-End Distance",
+                "RMS Fluctuation Estimate",
+                "Standard Error Estimate"])
+    ax.set_xlabel("Number of steps")
 
     plt.suptitle(
-        "End-to-end distance measures vs chain length \n for 100 rounds of "
+        "End-to-end distance measures vs chain length \n for mean of " +str(rounds)+ " rounds of "
         + str(nwalks) + " reptation walks (self-avoiding)")
     plt.show()
-
+    
 def get_cmap(n, name='hsv'):
     '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
     RGB color; the keyword argument name must be a standard mpl colormap name.
